@@ -25,13 +25,24 @@ body {
 }
 
 /* Экран подключения */
-.connection-panel, .hero-selection-panel {
+.connection-panel {
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(10px);
     padding: 40px;
     border-radius: 20px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     max-width: 600px;
+    width: 100%;
+    text-align: center;
+}
+
+.hero-selection-panel {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    max-width: 1200px;
     width: 100%;
     text-align: center;
 }
@@ -178,6 +189,46 @@ body {
     font-style: italic;
 }
 
+.hero-selection-card .hero-style {
+    font-weight: bold;
+    font-size: 1em;
+    margin-bottom: 8px;
+}
+
+.hero-selection-card .hero-abilities {
+    margin-top: 10px;
+}
+
+.hero-selection-card .ability {
+    margin-bottom: 8px;
+    padding: 5px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+}
+
+.hero-selection-card .ability-desc {
+    font-size: 0.8em;
+    opacity: 0.8;
+    margin-top: 3px;
+}
+
+.hero-selection-card .mana-cost {
+    font-size: 0.75em;
+    color: #64b5f6;
+    margin-top: 3px;
+}
+
+.styles-info {
+    margin-bottom: 15px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+}
+
+.styles-info-text {
+    font-size: 0.9em;
+}
+
 .waiting-message {
     margin-top: 20px;
     padding: 15px;
@@ -238,11 +289,216 @@ body {
     font-weight: bold;
 }
 
+.main-content.single-gladiator {
+    display: grid;
+    grid-template-columns: 300px 1fr 300px;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.left-panel, .right-panel {
+    display: flex;
+    flex-direction: column;
+}
+
+.center-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
 .main-content.two-players {
     display: grid;
     grid-template-columns: 1fr 300px 1fr;
     gap: 20px;
     margin-bottom: 20px;
+}
+
+.gladiator-section {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.gladiator-section.enemy {
+    background: rgba(139, 0, 0, 0.6);
+}
+
+.gladiator-display h3 {
+    margin-bottom: 15px;
+    font-size: 1.5em;
+    text-align: center;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+    padding-bottom: 10px;
+}
+
+.gladiator-stats {
+    margin-bottom: 15px;
+    line-height: 1.8;
+}
+
+.health-bar, .mana-bar {
+    margin: 10px 0;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 5px;
+    height: 25px;
+    position: relative;
+    overflow: hidden;
+}
+
+.health-label, .mana-label {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    line-height: 25px;
+    font-size: 0.9em;
+    z-index: 2;
+}
+
+.health-fill {
+    height: 100%;
+    background: #4caf50;
+    transition: width 0.3s ease;
+}
+
+.mana-fill {
+    height: 100%;
+    background: #4488ff;
+    transition: width 0.3s ease;
+}
+
+.abilities-display {
+    margin-top: 15px;
+}
+
+.ability-info {
+    margin-bottom: 10px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+}
+
+.ability-desc-small {
+    font-size: 0.85em;
+    opacity: 0.8;
+    margin-top: 5px;
+}
+
+.gladiator-cards {
+    margin-top: 15px;
+}
+
+.gladiator-cards h4 {
+    margin-bottom: 10px;
+}
+
+.cards-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.owned-card {
+    padding: 5px 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    font-size: 0.85em;
+}
+
+.shop-section {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.shop-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.shop-header h2 {
+    margin: 0;
+}
+
+.shop-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.shop-card {
+    background: rgba(255, 255, 255, 0.1);
+    border: 3px solid;
+    border-radius: 10px;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.shop-card:hover:not(.unaffordable) {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+}
+
+.shop-card.unaffordable {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+.card-style {
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.card-rarity {
+    font-size: 0.75em;
+    font-weight: bold;
+}
+
+.card-name {
+    font-weight: bold;
+    margin-bottom: 8px;
+    font-size: 0.9em;
+}
+
+.card-cost {
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.battle-status-section {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    margin-top: 20px;
+}
+
+.battle-status {
+    font-size: 1.3em;
+    font-weight: bold;
+    margin-bottom: 15px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
 }
 
 .player-arena, .enemy-arena {

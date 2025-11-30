@@ -1,132 +1,261 @@
 // Константы
-const ARENA_COLS = 4;
-const ARENA_ROWS = 3;
-const HEROES_TO_SELECT = 3;
+const STARTING_LIVES = 100;
+const STARTING_GOLD = 10;
+const SHOP_SIZE = 5;
 
-// Герои
+// Стили (секты)
+const ALL_STYLES = [
+    { id: 'critical', name: 'Критический удар', color: '#ff4444' },
+    { id: 'frost', name: 'Мороз', color: '#4488ff' },
+    { id: 'poison', name: 'Яд', color: '#44ff44' },
+    { id: 'fury', name: 'Ярость', color: '#ff8844' },
+    { id: 'tank', name: 'Танк', color: '#888888' },
+    { id: 'evasion', name: 'Уклонение', color: '#ff44ff' },
+    { id: 'shield', name: 'Щит', color: '#4444ff' },
+    { id: 'ultimate', name: 'Ультимейт', color: '#ffff44' }
+];
+
+// Герои с пассивными и активными способностями
 const HEROES = [
     {
         id: 'axe',
         name: 'Axe',
-        health: 650,
+        style: 'tank',
+        health: 1200,
         damage: 55,
-        armor: 2,
-        type: 'warrior',
-        description: 'Танк с высокой защитой'
+        armor: 4,
+        attackSpeed: 1.2,
+        passive: {
+            name: 'Берсерк',
+            description: 'При потере здоровья увеличивает броню на 0.5 за каждые 10% потерянного здоровья'
+        },
+        active: {
+            name: 'Берсеркер Крик',
+            description: 'Притягивает врага и увеличивает свою броню на 5 на 3 секунды',
+            manaCost: 100,
+            cooldown: 8000
+        }
     },
     {
         id: 'sven',
         name: 'Sven',
-        health: 680,
-        damage: 68,
-        armor: 3,
-        type: 'warrior',
-        description: 'Воин с критическим уроном'
+        style: 'critical',
+        health: 1000,
+        damage: 75,
+        armor: 2,
+        attackSpeed: 1.5,
+        passive: {
+            name: 'Божественная Сила',
+            description: 'Каждая атака имеет 20% шанс нанести критический урон x2'
+        },
+        active: {
+            name: 'Божественная Сила',
+            description: 'Увеличивает урон на 100% и скорость атаки на 50% на 5 секунд',
+            manaCost: 120,
+            cooldown: 12000
+        }
     },
     {
         id: 'drow',
         name: 'Drow Ranger',
-        health: 440,
-        damage: 50,
-        armor: 0,
-        type: 'ranger',
-        description: 'Дальнобойный стрелок'
-    },
-    {
-        id: 'wind',
-        name: 'Windranger',
-        health: 480,
-        damage: 60,
+        style: 'frost',
+        health: 800,
+        damage: 70,
         armor: 1,
-        type: 'ranger',
-        description: 'Быстрый лучник'
-    },
-    {
-        id: 'crystal',
-        name: 'Crystal Maiden',
-        health: 420,
-        damage: 45,
-        armor: 0,
-        type: 'mage',
-        description: 'Маг с замораживанием'
-    },
-    {
-        id: 'lina',
-        name: 'Lina',
-        health: 480,
-        damage: 55,
-        armor: 1,
-        type: 'mage',
-        description: 'Мощный магический урон'
+        attackSpeed: 1.8,
+        passive: {
+            name: 'Морозные Стрелы',
+            description: 'Атаки замедляют врага на 20% на 2 секунды'
+        },
+        active: {
+            name: 'Молчание',
+            description: 'Останавливает врага на 2 секунды и наносит 150 урона',
+            manaCost: 90,
+            cooldown: 10000
+        }
     },
     {
         id: 'pudge',
         name: 'Pudge',
-        health: 750,
-        damage: 52,
-        armor: 2,
-        type: 'tank',
-        description: 'Очень прочный танк'
-    },
-    {
-        id: 'tide',
-        name: 'Tidehunter',
-        health: 800,
-        damage: 58,
+        style: 'tank',
+        health: 1300,
+        damage: 50,
         armor: 3,
-        type: 'tank',
-        description: 'Максимальная защита'
+        attackSpeed: 1.1,
+        passive: {
+            name: 'Гниение',
+            description: 'Наносит 10 урона в секунду всем врагам в радиусе'
+        },
+        active: {
+            name: 'Крюк',
+            description: 'Притягивает врага и наносит 200 урона',
+            manaCost: 110,
+            cooldown: 14000
+        }
     },
     {
         id: 'riki',
         name: 'Riki',
-        health: 460,
-        damage: 62,
+        style: 'critical',
+        health: 850,
+        damage: 80,
         armor: 1,
-        type: 'assassin',
-        description: 'Ассассин с критом'
+        attackSpeed: 1.7,
+        passive: {
+            name: 'Удар в спину',
+            description: 'Атаки сзади наносят критический урон x2.5'
+        },
+        active: {
+            name: 'Невидимость',
+            description: 'Становится невидимым на 3 секунды, следующий удар наносит x3 урона',
+            manaCost: 80,
+            cooldown: 15000
+        }
     },
     {
-        id: 'phantom',
-        name: 'Phantom Assassin',
-        health: 550,
-        damage: 70,
-        armor: 2,
-        type: 'assassin',
-        description: 'Сильнейший ассассин'
+        id: 'crystal',
+        name: 'Crystal Maiden',
+        style: 'frost',
+        health: 750,
+        damage: 55,
+        armor: 0,
+        attackSpeed: 1.6,
+        passive: {
+            name: 'Восстановление маны',
+            description: 'Восстанавливает ману на 50% быстрее'
+        },
+        active: {
+            name: 'Ледяной Взрыв',
+            description: 'Наносит 180 урона и замедляет врага на 50% на 4 секунды',
+            manaCost: 100,
+            cooldown: 9000
+        }
     },
     {
         id: 'juggernaut',
         name: 'Juggernaut',
-        health: 600,
+        style: 'fury',
+        health: 950,
         damage: 65,
         armor: 2,
-        type: 'warrior',
-        description: 'Сбалансированный боец'
+        attackSpeed: 1.6,
+        passive: {
+            name: 'Танец клинка',
+            description: 'Имеет 25% шанс уклониться от атаки и контратаковать'
+        },
+        active: {
+            name: 'Вихрь',
+            description: 'Становится неуязвимым и наносит 50 урона в секунду в течение 5 секунд',
+            manaCost: 130,
+            cooldown: 16000
+        }
     },
     {
-        id: 'lion',
-        name: 'Lion',
-        health: 450,
-        damage: 48,
-        armor: 0,
-        type: 'mage',
-        description: 'Маг-контроллер'
+        id: 'lina',
+        name: 'Lina',
+        style: 'ultimate',
+        health: 800,
+        damage: 60,
+        armor: 1,
+        attackSpeed: 1.7,
+        passive: {
+            name: 'Жар',
+            description: 'Каждая атака увеличивает скорость атаки на 5% (макс. 50%)'
+        },
+        active: {
+            name: 'Лагуна Блейд',
+            description: 'Наносит 300 чистого урона',
+            manaCost: 200,
+            cooldown: 20000
+        }
     }
 ];
+
+// Редкость карточек
+const RARITY = {
+    common: { name: 'Обычная', color: '#cccccc', cost: 2 },
+    uncommon: { name: 'Необычная', color: '#44ff44', cost: 3 },
+    rare: { name: 'Редкая', color: '#4488ff', cost: 4 },
+    epic: { name: 'Эпическая', color: '#8844ff', cost: 5 },
+    legendary: { name: 'Легендарная', color: '#ff8844', cost: 6 }
+};
+
+// Карточки улучшений для стилей
+const CARDS = {
+    critical: [
+        { id: 'crit_chance_1', name: 'Шанс крита +10%', rarity: 'common', effect: { critChance: 10 } },
+        { id: 'crit_damage_1', name: 'Урон крита +50%', rarity: 'uncommon', effect: { critDamage: 50 } },
+        { id: 'crit_chance_2', name: 'Шанс крита +20%', rarity: 'rare', effect: { critChance: 20 } },
+        { id: 'crit_on_kill', name: 'Крит при убийстве', rarity: 'epic', effect: { critOnKill: true } },
+        { id: 'crit_master', name: 'Мастер крита', rarity: 'legendary', effect: { critChance: 30, critDamage: 100 } }
+    ],
+    frost: [
+        { id: 'frost_slow_1', name: 'Замедление +15%', rarity: 'common', effect: { slow: 15 } },
+        { id: 'frost_damage_1', name: 'Урон мороза +20', rarity: 'uncommon', effect: { frostDamage: 20 } },
+        { id: 'frost_stack_1', name: 'Стаки мороза +1', rarity: 'rare', effect: { frostStack: 1 } },
+        { id: 'frost_freeze', name: 'Замораживание', rarity: 'epic', effect: { freeze: true } },
+        { id: 'frost_master', name: 'Мастер мороза', rarity: 'legendary', effect: { slow: 50, frostDamage: 50 } }
+    ],
+    poison: [
+        { id: 'poison_damage_1', name: 'Урон яда +10', rarity: 'common', effect: { poisonDamage: 10 } },
+        { id: 'poison_stack_1', name: 'Стаки яда +2', rarity: 'uncommon', effect: { poisonStack: 2 } },
+        { id: 'poison_duration_1', name: 'Длительность +3с', rarity: 'rare', effect: { poisonDuration: 3 } },
+        { id: 'poison_explode', name: 'Взрыв яда', rarity: 'epic', effect: { poisonExplode: true } },
+        { id: 'poison_master', name: 'Мастер яда', rarity: 'legendary', effect: { poisonDamage: 30, poisonStack: 5 } }
+    ],
+    fury: [
+        { id: 'fury_attack_1', name: 'Скорость атаки +10%', rarity: 'common', effect: { attackSpeed: 10 } },
+        { id: 'fury_damage_1', name: 'Урон при ярости +15', rarity: 'uncommon', effect: { furyDamage: 15 } },
+        { id: 'fury_stack_1', name: 'Стаки ярости +2', rarity: 'rare', effect: { furyStack: 2 } },
+        { id: 'fury_berserk', name: 'Берсерк', rarity: 'epic', effect: { berserk: true } },
+        { id: 'fury_master', name: 'Мастер ярости', rarity: 'legendary', effect: { attackSpeed: 30, furyDamage: 40 } }
+    ],
+    tank: [
+        { id: 'tank_health_1', name: 'Здоровье +100', rarity: 'common', effect: { health: 100 } },
+        { id: 'tank_armor_1', name: 'Броня +2', rarity: 'uncommon', effect: { armor: 2 } },
+        { id: 'tank_regen_1', name: 'Реген +5/с', rarity: 'rare', effect: { regen: 5 } },
+        { id: 'tank_thorns', name: 'Шипы', rarity: 'epic', effect: { thorns: true } },
+        { id: 'tank_master', name: 'Мастер танка', rarity: 'legendary', effect: { health: 300, armor: 5 } }
+    ],
+    evasion: [
+        { id: 'evasion_chance_1', name: 'Шанс уклонения +10%', rarity: 'common', effect: { evasionChance: 10 } },
+        { id: 'evasion_counter_1', name: 'Контратака при уклонении', rarity: 'uncommon', effect: { counterAttack: true } },
+        { id: 'evasion_dodge_1', name: 'Полное уклонение +5%', rarity: 'rare', effect: { fullEvasion: 5 } },
+        { id: 'evasion_blink', name: 'Блинк при уклонении', rarity: 'epic', effect: { blink: true } },
+        { id: 'evasion_master', name: 'Мастер уклонения', rarity: 'legendary', effect: { evasionChance: 30, counterAttack: true } }
+    ],
+    shield: [
+        { id: 'shield_block_1', name: 'Блок +50', rarity: 'common', effect: { shieldBlock: 50 } },
+        { id: 'shield_regen_1', name: 'Восстановление щита', rarity: 'uncommon', effect: { shieldRegen: true } },
+        { id: 'shield_reflect_1', name: 'Отражение урона 20%', rarity: 'rare', effect: { reflect: 20 } },
+        { id: 'shield_barrier', name: 'Барьер', rarity: 'epic', effect: { barrier: true } },
+        { id: 'shield_master', name: 'Мастер щита', rarity: 'legendary', effect: { shieldBlock: 200, reflect: 40 } }
+    ],
+    ultimate: [
+        { id: 'ult_cooldown_1', name: 'Перезарядка -20%', rarity: 'common', effect: { cooldown: -20 } },
+        { id: 'ult_damage_1', name: 'Урон ульты +50', rarity: 'uncommon', effect: { ultDamage: 50 } },
+        { id: 'ult_chain_1', name: 'Цепная ульта', rarity: 'rare', effect: { chain: true } },
+        { id: 'ult_execute', name: 'Казнь', rarity: 'epic', effect: { execute: true } },
+        { id: 'ult_master', name: 'Мастер ульты', rarity: 'legendary', effect: { ultDamage: 150, cooldown: -50 } }
+    ]
+};
 
 // Игровое состояние
 let gameState = {
     socket: null,
     playerName: '',
     roomId: null,
-    selectedHeroes: [],
-    playerHeroes: [],
-    enemyHeroes: [],
-    lives: 100,
+    availableStyles: [], // Доступные стили (случайные)
+    blockedStyles: [], // Заблокированные стили
+    selectedHero: null, // Выбранный герой
+    gladiator: null, // Текущий гладиатор с улучшениями
+    cards: [], // Купленные карточки
+    shop: [], // Магазин карточек
+    gold: STARTING_GOLD,
+    lives: STARTING_LIVES,
     round: 1,
     isReady: false,
-    currentScreen: 'connection' // connection, selection, game
+    currentScreen: 'connection'
 };
 
 // Инициализация
@@ -138,17 +267,9 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupConnectionScreen() {
     document.getElementById('connect-btn').addEventListener('click', connectToRoom);
     document.getElementById('create-room-btn').addEventListener('click', createRoom);
-    document.getElementById('confirm-selection-btn').addEventListener('click', confirmHeroSelection);
     document.getElementById('ready-btn').addEventListener('click', setReady);
     document.getElementById('not-ready-btn').addEventListener('click', setNotReady);
-    
-    // Enter для подключения
-    document.getElementById('server-url').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') connectToRoom();
-    });
-    document.getElementById('player-name').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') connectToRoom();
-    });
+    document.getElementById('refresh-shop-btn').addEventListener('click', refreshShop);
 }
 
 // Создание комнаты
@@ -216,33 +337,35 @@ function connectToRoom() {
 
 // Настройка обработчиков Socket.IO
 function setupSocketListeners() {
-    gameState.socket.on('start-hero-selection', () => {
-        gameState.selectedHeroes = [];
-        gameState.playerHeroes = [];
-        gameState.enemyHeroes = [];
-        showScreen('selection');
+    gameState.socket.on('styles-selected', (data) => {
+        gameState.availableStyles = data.styles;
+        gameState.blockedStyles = data.blockedStyles || [];
+        gameState.gold = STARTING_GOLD;
+        gameState.selectedHero = null;
+        gameState.gladiator = null;
+        gameState.cards = [];
+        
+        showScreen('hero-selection');
         renderHeroSelection();
-        document.getElementById('log').innerHTML = '';
+        addLog(`Доступные стили: ${data.styles.map(s => ALL_STYLES.find(st => st.id === s)?.name || s).join(', ')}`, 'info');
+        addLog(`Заблокированные: ${data.blockedStyles.map(s => ALL_STYLES.find(st => st.id === s)?.name || s).join(', ')}`, 'info');
+    });
+    
+    gameState.socket.on('hero-selected', (data) => {
+        if (data.playerId !== gameState.socket.id) {
+            addLog('Противник выбрал героя', 'info');
+        }
     });
     
     gameState.socket.on('all-heroes-selected', () => {
-        document.getElementById('waiting-message').classList.add('hidden');
-        addLog('Все игроки выбрали героев. Разместите героев на арене и нажмите "Готов к бою"', 'info');
+        generateShop();
+        showScreen('game');
+        renderGame();
+        addLog('Все игроки выбрали героев. Покупайте карточки и готовьтесь к бою!', 'info');
     });
     
-    gameState.socket.on('heroes-selected', (data) => {
-        // Обновление информации о выборе противника
-        if (data.playerId !== gameState.socket.id) {
-            gameState.enemyHeroes = data.heroes.map(hero => ({
-                ...hero,
-                maxHealth: hero.maxHealth || hero.health,
-                currentHealth: hero.maxHealth || hero.health
-            }));
-            addLog('Противник выбрал героев', 'info');
-            if (gameState.currentScreen === 'game') {
-                renderGame();
-            }
-        }
+    gameState.socket.on('all-ready', () => {
+        addLog('Оба игрока готовы! Бой начнется скоро...', 'info');
     });
     
     gameState.socket.on('player-ready-status', (data) => {
@@ -253,45 +376,45 @@ function setupSocketListeners() {
     
     gameState.socket.on('battle-started', () => {
         addLog('=== БОЙ НАЧАЛСЯ ===', 'info');
-        document.getElementById('battle-status').querySelector('.status-text').textContent = 'Бой идет...';
+        document.getElementById('battle-status').textContent = 'Бой идет...';
     });
     
     gameState.socket.on('battle-result', (result) => {
         const isWinner = result.winner === gameState.socket.id;
         gameState.lives = isWinner ? result.winnerLives : result.loserLives;
         
-        // Обновляем героев после боя
-        if (result.player1Id === gameState.socket.id) {
-            gameState.playerHeroes = result.player1Heroes || [];
-            gameState.enemyHeroes = result.player2Heroes || [];
-        } else {
-            gameState.playerHeroes = result.player2Heroes || [];
-            gameState.enemyHeroes = result.player1Heroes || [];
-        }
-        
         showBattleResult(isWinner, result);
         
         if (result.gameOver) {
             addLog(isWinner ? '🎉 ПОБЕДА! ИГРА ОКОНЧЕНА!' : '💀 ПОРАЖЕНИЕ! ИГРА ОКОНЧЕНА!', 'info');
         } else {
-            addLog(isWinner ? `🎉 Победа в раунде! Жизней: ${gameState.lives}` : `💀 Поражение в раунде. Жизней: ${gameState.lives}`, 'info');
+            gameState.round++;
+            gameState.gold += isWinner ? 5 : 3;
+            addLog(isWinner ? 
+                `🎉 Победа в раунде! Жизней: ${gameState.lives}, Золота: ${gameState.gold}` : 
+                `💀 Поражение в раунде. Жизней: ${gameState.lives}, Золота: ${gameState.gold}`, 'info');
+            
+            // Генерация нового магазина
+            generateShop();
         }
         
         updateUI();
     });
     
     gameState.socket.on('round-end', () => {
-        gameState.round++;
         gameState.isReady = false;
-        gameState.selectedHeroes = [];
-        gameState.playerHeroes = [];
-        gameState.enemyHeroes = [];
-        document.getElementById('battle-status').querySelector('.status-text').textContent = 'Подготовка к следующему раунду';
+        gameState.selectedHero = null;
+        gameState.gladiator = null;
+        gameState.cards = [];
+        gameState.gold = STARTING_GOLD;
         document.getElementById('ready-btn').classList.remove('hidden');
         document.getElementById('not-ready-btn').classList.add('hidden');
-        addLog('Раунд окончен. Выберите новых героев.', 'info');
-        showScreen('selection');
+        document.getElementById('battle-status').textContent = 'Подготовка к следующему раунду';
+        
+        // Возвращаемся к выбору героя
+        showScreen('hero-selection');
         renderHeroSelection();
+        addLog('Раунд окончен. Выберите нового героя.', 'info');
     });
     
     gameState.socket.on('game-over', (data) => {
@@ -303,16 +426,16 @@ function setupSocketListeners() {
     });
     
     gameState.socket.on('restart-game', () => {
-        gameState.selectedHeroes = [];
-        gameState.playerHeroes = [];
-        gameState.enemyHeroes = [];
-        gameState.lives = 100;
+        gameState.lives = STARTING_LIVES;
         gameState.round = 1;
+        gameState.gold = STARTING_GOLD;
+        gameState.selectedHero = null;
+        gameState.gladiator = null;
+        gameState.cards = [];
         gameState.isReady = false;
-        showScreen('selection');
-        renderHeroSelection();
+        showScreen('connection');
         document.getElementById('log').innerHTML = '';
-        addLog('Игра перезапущена! Выберите новых героев.', 'info');
+        addLog('Игра перезапущена!', 'info');
     });
     
     gameState.socket.on('player-disconnected', () => {
@@ -321,119 +444,307 @@ function setupSocketListeners() {
     });
 }
 
-// Показать экран
-function showScreen(screenName) {
-    document.querySelectorAll('.screen').forEach(screen => {
-        screen.classList.add('hidden');
-    });
-    
-    document.getElementById(`${screenName}-screen`).classList.remove('hidden');
-    gameState.currentScreen = screenName;
-}
-
-// Показать статус
-function showStatus(message, type = 'info') {
-    const statusEl = document.getElementById('connection-status');
-    statusEl.textContent = message;
-    statusEl.className = `status-message ${type}`;
-}
-
-// Рендеринг выбора героев
+// Рендеринг выбора героя
 function renderHeroSelection() {
-    const grid = document.getElementById('hero-selection-grid');
-    grid.innerHTML = '';
+    const selectionContainer = document.getElementById('hero-selection-container');
+    const stylesInfoContainer = document.getElementById('available-styles-info');
     
-    HEROES.forEach(hero => {
+    if (!selectionContainer) return;
+    
+    selectionContainer.innerHTML = '';
+    
+    // Показываем доступные стили
+    if (stylesInfoContainer && gameState.availableStyles.length > 0) {
+        const availableStylesText = gameState.availableStyles.map(s => {
+            const styleInfo = ALL_STYLES.find(st => st.id === s);
+            return `<span style="color: ${styleInfo?.color || '#fff'}">${styleInfo?.name || s}</span>`;
+        }).join(', ');
+        stylesInfoContainer.innerHTML = `<div class="styles-info-text"><strong>Доступные стили:</strong> ${availableStylesText}</div>`;
+    }
+    
+    // Фильтруем героев по доступным стилям
+    const availableHeroes = HEROES.filter(hero => 
+        gameState.availableStyles.includes(hero.style)
+    );
+    
+    if (availableHeroes.length === 0) {
+        selectionContainer.innerHTML = '<p>Нет доступных героев для выбора</p>';
+        return;
+    }
+    
+    availableHeroes.forEach(hero => {
         const heroCard = document.createElement('div');
         heroCard.className = 'hero-selection-card';
-        if (gameState.selectedHeroes.find(h => h.id === hero.id)) {
+        
+        if (gameState.selectedHero && gameState.selectedHero.id === hero.id) {
             heroCard.classList.add('selected');
         }
         
+        const styleInfo = ALL_STYLES.find(s => s.id === hero.style);
+        
         heroCard.innerHTML = `
             <div class="hero-name">${hero.name}</div>
-            <div class="hero-type">${hero.type}</div>
+            <div class="hero-style" style="color: ${styleInfo?.color || '#fff'}">${styleInfo?.name || hero.style}</div>
             <div class="hero-stats">
                 <div>HP: ${hero.health}</div>
                 <div>Урон: ${hero.damage}</div>
                 <div>Броня: ${hero.armor}</div>
+                <div>Скорость: ${hero.attackSpeed}</div>
             </div>
-            <div class="hero-description">${hero.description}</div>
+            <div class="hero-abilities">
+                <div class="ability passive">
+                    <strong>Пассивная:</strong> ${hero.passive.name}
+                    <div class="ability-desc">${hero.passive.description}</div>
+                </div>
+                <div class="ability active">
+                    <strong>Активная:</strong> ${hero.active.name}
+                    <div class="ability-desc">${hero.active.description}</div>
+                    <div class="mana-cost">Мана: ${hero.active.manaCost} | КД: ${hero.active.cooldown/1000}с</div>
+                </div>
+            </div>
         `;
         
-        heroCard.addEventListener('click', () => toggleHeroSelection(hero, heroCard));
-        grid.appendChild(heroCard);
+        heroCard.addEventListener('click', () => selectHero(hero));
+        selectionContainer.appendChild(heroCard);
+    });
+}
+
+// Выбор героя
+function selectHero(hero) {
+    gameState.selectedHero = hero;
+    gameState.gladiator = {
+        ...hero,
+        currentHealth: hero.health,
+        maxHealth: hero.health,
+        mana: 0,
+        maxMana: 200,
+        effects: {},
+        activeCooldown: 0
+    };
+    
+    gameState.socket.emit('select-hero', {
+        roomId: gameState.roomId,
+        hero: hero
     });
     
-    updateSelectionUI();
+    addLog(`Выбран герой: ${hero.name}`, 'info');
+    
+    // Автоматически переходим к магазину
+    setTimeout(() => {
+        if (gameState.socket) {
+            gameState.socket.once('all-heroes-selected', () => {
+                generateShop();
+                showScreen('game');
+                renderGame();
+            });
+        }
+    }, 500);
 }
 
-// Переключение выбора героя
-function toggleHeroSelection(hero, cardElement) {
-    const index = gameState.selectedHeroes.findIndex(h => h.id === hero.id);
+// Генерация магазина
+function generateShop() {
+    gameState.shop = [];
     
-    if (index !== -1) {
-        // Удаление
-        gameState.selectedHeroes.splice(index, 1);
-        cardElement.classList.remove('selected');
-    } else {
-        // Добавление
-        if (gameState.selectedHeroes.length >= HEROES_TO_SELECT) {
-            addLog('Можно выбрать только ' + HEROES_TO_SELECT + ' героев!', 'info');
-            return;
-        }
+    for (let i = 0; i < SHOP_SIZE; i++) {
+        // Выбираем случайный доступный стиль
+        const style = gameState.availableStyles[Math.floor(Math.random() * gameState.availableStyles.length)];
+        const styleCards = CARDS[style];
         
-        const heroCopy = {
-            ...hero,
-            maxHealth: hero.health,
-            currentHealth: hero.health
+        // Выбираем случайную карточку с учетом редкости
+        const rarityWeights = {
+            common: 50,
+            uncommon: 30,
+            rare: 15,
+            epic: 4,
+            legendary: 1
         };
         
-        gameState.selectedHeroes.push(heroCopy);
-        cardElement.classList.add('selected');
+        const weightedCards = [];
+        styleCards.forEach(card => {
+            const weight = rarityWeights[card.rarity];
+            for (let j = 0; j < weight; j++) {
+                weightedCards.push({ ...card, style });
+            }
+        });
+        
+        const randomCard = weightedCards[Math.floor(Math.random() * weightedCards.length)];
+        gameState.shop.push(randomCard);
     }
     
-    updateSelectionUI();
+    renderShop();
 }
 
-// Обновление UI выбора
-function updateSelectionUI() {
-    const count = gameState.selectedHeroes.length;
-    document.getElementById('selected-count').textContent = `Выбрано: ${count}/${HEROES_TO_SELECT}`;
-    document.getElementById('confirm-selection-btn').disabled = count !== HEROES_TO_SELECT;
+// Рендеринг магазина
+function renderShop() {
+    const shopContainer = document.getElementById('shop');
+    if (!shopContainer) return;
+    
+    shopContainer.innerHTML = '';
+    
+    gameState.shop.forEach((card, index) => {
+        const cardElement = document.createElement('div');
+        cardElement.className = 'shop-card';
+        
+        const rarityInfo = RARITY[card.rarity];
+        const styleInfo = ALL_STYLES.find(s => s.id === card.style);
+        
+        cardElement.style.borderColor = rarityInfo.color;
+        cardElement.innerHTML = `
+            <div class="card-header" style="background: ${styleInfo?.color || '#666'}">
+                <span class="card-style">${styleInfo?.name || card.style}</span>
+                <span class="card-rarity" style="color: ${rarityInfo.color}">${rarityInfo.name}</span>
+            </div>
+            <div class="card-name">${card.name}</div>
+            <div class="card-cost" style="color: #ffd700">${rarityInfo.cost} золота</div>
+        `;
+        
+        if (gameState.gold < rarityInfo.cost) {
+            cardElement.classList.add('unaffordable');
+        } else {
+            cardElement.addEventListener('click', () => buyCard(index));
+        }
+        
+        shopContainer.appendChild(cardElement);
+    });
+    
+    // Показываем доступные стили
+    const stylesContainer = document.getElementById('available-styles');
+    if (stylesContainer) {
+        const availableStylesText = gameState.availableStyles.map(s => {
+            const styleInfo = ALL_STYLES.find(st => st.id === s);
+            return `<span style="color: ${styleInfo?.color || '#fff'}">${styleInfo?.name || s}</span>`;
+        }).join(', ');
+        stylesContainer.innerHTML = `<div class="styles-info"><strong>Доступные стили:</strong> ${availableStylesText}</div>`;
+    }
 }
 
-// Подтверждение выбора героев
-function confirmHeroSelection() {
-    if (gameState.selectedHeroes.length !== HEROES_TO_SELECT) {
+// Покупка карточки
+function buyCard(shopIndex) {
+    const card = gameState.shop[shopIndex];
+    const rarityInfo = RARITY[card.rarity];
+    
+    if (gameState.gold < rarityInfo.cost) {
+        addLog('Недостаточно золота!', 'info');
         return;
     }
     
-    gameState.playerHeroes = [...gameState.selectedHeroes];
-    gameState.socket.emit('select-heroes', {
-        roomId: gameState.roomId,
-        heroes: gameState.selectedHeroes
-    });
+    gameState.gold -= rarityInfo.cost;
+    gameState.cards.push(card);
+    applyCardEffect(card);
     
-    document.getElementById('waiting-message').classList.remove('hidden');
-    addLog('Выбор подтвержден. Ожидание противника...', 'info');
+    gameState.shop.splice(shopIndex, 1);
+    addLog(`Куплена карточка: ${card.name}`, 'info');
     
-    // Переходим к игровому экрану после небольшой задержки
-    setTimeout(() => {
-        showScreen('game');
-        renderGame();
-    }, 1000);
+    renderShop();
+    renderGladiator();
+    updateUI();
+}
+
+// Применение эффекта карточки
+function applyCardEffect(card) {
+    const effect = card.effect;
+    
+    if (effect.health) {
+        gameState.gladiator.maxHealth += effect.health;
+        gameState.gladiator.currentHealth += effect.health;
+    }
+    if (effect.armor) gameState.gladiator.armor += effect.armor;
+    if (effect.damage) gameState.gladiator.damage += effect.damage;
+    if (effect.attackSpeed) gameState.gladiator.attackSpeed += effect.attackSpeed / 100;
+    
+    // Сохраняем эффекты для боя
+    if (!gameState.gladiator.effects) gameState.gladiator.effects = {};
+    Object.assign(gameState.gladiator.effects, effect);
+}
+
+// Рендеринг гладиатора
+function renderGladiator() {
+    const gladiatorContainer = document.getElementById('gladiator');
+    if (!gladiatorContainer || !gameState.gladiator) return;
+    
+    const gladiator = gameState.gladiator;
+    const healthPercent = (gladiator.currentHealth / gladiator.maxHealth) * 100;
+    const manaPercent = (gladiator.mana / gladiator.maxMana) * 100;
+    
+    gladiatorContainer.innerHTML = `
+        <div class="gladiator-display">
+            <h3>${gladiator.name}</h3>
+            <div class="gladiator-stats">
+                <div>HP: ${Math.ceil(gladiator.currentHealth)}/${gladiator.maxHealth}</div>
+                <div>Урон: ${gladiator.damage}</div>
+                <div>Броня: ${gladiator.armor}</div>
+                <div>Скорость атаки: ${gladiator.attackSpeed.toFixed(2)}</div>
+            </div>
+            <div class="health-bar">
+                <div class="health-label">Здоровье</div>
+                <div class="health-fill" style="width: ${healthPercent}%"></div>
+            </div>
+            <div class="mana-bar">
+                <div class="mana-label">Мана: ${Math.ceil(gladiator.mana)}/${gladiator.maxMana}</div>
+                <div class="mana-fill" style="width: ${manaPercent}%"></div>
+            </div>
+            <div class="abilities-display">
+                <div class="ability-info">
+                    <strong>Пассивная:</strong> ${gladiator.passive.name}
+                    <div class="ability-desc-small">${gladiator.passive.description}</div>
+                </div>
+                <div class="ability-info">
+                    <strong>Активная:</strong> ${gladiator.active.name}
+                    <div class="ability-desc-small">${gladiator.active.description}</div>
+                </div>
+            </div>
+            <div class="gladiator-cards">
+                <h4>Карточки (${gameState.cards.length}):</h4>
+                <div class="cards-list">
+                    ${gameState.cards.map(card => `
+                        <div class="owned-card">
+                            <span style="color: ${RARITY[card.rarity].color}">${card.name}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Обновление UI
+function updateUI() {
+    document.getElementById('player-display-name').textContent = gameState.playerName;
+    document.getElementById('current-round').textContent = gameState.round;
+    document.getElementById('lives').textContent = gameState.lives;
+    document.getElementById('gold').textContent = gameState.gold;
+    
+    if (gameState.currentScreen === 'game') {
+        renderGladiator();
+    }
+}
+
+// Обновление магазина
+function refreshShop() {
+    if (gameState.gold < 2) {
+        addLog('Недостаточно золота для обновления (нужно 2)!', 'info');
+        return;
+    }
+    
+    gameState.gold -= 2;
+    generateShop();
+    addLog('Магазин обновлен!', 'info');
+    updateUI();
 }
 
 // Установка готовности
 function setReady() {
-    if (gameState.playerHeroes.length === 0) {
-        addLog('Сначала выберите и разместите героев!', 'info');
+    if (!gameState.gladiator) {
+        addLog('Сначала выберите героя!', 'info');
         return;
     }
     
     gameState.isReady = true;
-    gameState.socket.emit('player-ready', { roomId: gameState.roomId });
+    gameState.socket.emit('player-ready', { 
+        roomId: gameState.roomId,
+        gladiator: gameState.gladiator,
+        cards: gameState.cards
+    });
     
     document.getElementById('ready-btn').classList.add('hidden');
     document.getElementById('not-ready-btn').classList.remove('hidden');
@@ -451,70 +762,26 @@ function setNotReady() {
 
 // Рендеринг игры
 function renderGame() {
-    renderArena('player-arena', gameState.playerHeroes, true);
-    renderArena('enemy-arena', gameState.enemyHeroes, false);
-    renderHeroesList('player-heroes-list', gameState.playerHeroes);
-    renderHeroesList('enemy-heroes-list', gameState.enemyHeroes);
+    renderGladiator();
+    renderShop();
     updateUI();
 }
 
-// Рендеринг арены
-function renderArena(arenaId, heroes, isPlayer) {
-    const arenaContainer = document.getElementById(arenaId);
-    arenaContainer.innerHTML = '';
-    
-    for (let row = 0; row < ARENA_ROWS; row++) {
-        for (let col = 0; col < ARENA_COLS; col++) {
-            const cell = document.createElement('div');
-            cell.className = 'arena-cell-small';
-            
-            const heroIndex = row * ARENA_COLS + col;
-            const hero = heroes[heroIndex];
-            
-            if (hero) {
-                cell.classList.add('occupied');
-                const healthPercent = ((hero.currentHealth || hero.maxHealth) / hero.maxHealth) * 100;
-                
-                cell.innerHTML = `
-                    <div class="hero-on-arena-small">
-                        <div class="hero-mini-name">${hero.name}</div>
-                        <div class="hero-health-bar-small">
-                            <div class="hero-health-fill-small" style="width: ${healthPercent}%"></div>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            arenaContainer.appendChild(cell);
-        }
-    }
-}
-
-// Рендеринг списка героев
-function renderHeroesList(listId, heroes) {
-    const listContainer = document.getElementById(listId);
-    listContainer.innerHTML = '';
-    
-    heroes.forEach((hero, index) => {
-        const heroItem = document.createElement('div');
-        heroItem.className = 'hero-list-item';
-        heroItem.innerHTML = `
-            <span class="hero-list-name">${hero.name}</span>
-            <span class="hero-list-stats">HP: ${hero.maxHealth} | DMG: ${hero.damage} | ARM: ${hero.armor}</span>
-        `;
-        listContainer.appendChild(heroItem);
+// Показать экран
+function showScreen(screenName) {
+    document.querySelectorAll('.screen').forEach(screen => {
+        screen.classList.add('hidden');
     });
+    
+    document.getElementById(`${screenName}-screen`).classList.remove('hidden');
+    gameState.currentScreen = screenName;
 }
 
-// Обновление UI
-function updateUI() {
-    document.getElementById('player-display-name').textContent = gameState.playerName;
-    document.getElementById('current-round').textContent = gameState.round;
-    document.getElementById('lives').textContent = gameState.lives;
-    
-    if (gameState.currentScreen === 'game') {
-        renderGame();
-    }
+// Показать статус
+function showStatus(message, type = 'info') {
+    const statusEl = document.getElementById('connection-status');
+    statusEl.textContent = message;
+    statusEl.className = `status-message ${type}`;
 }
 
 // Показать результат боя
@@ -543,10 +810,14 @@ function addLog(message, type = 'info') {
 
 // Сброс игры
 function resetGame() {
-    gameState.selectedHeroes = [];
-    gameState.playerHeroes = [];
-    gameState.enemyHeroes = [];
-    gameState.lives = 100;
+    gameState.availableStyles = [];
+    gameState.blockedStyles = [];
+    gameState.selectedHero = null;
+    gameState.gladiator = null;
+    gameState.cards = [];
+    gameState.shop = [];
+    gameState.gold = STARTING_GOLD;
+    gameState.lives = STARTING_LIVES;
     gameState.round = 1;
     gameState.isReady = false;
     

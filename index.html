@@ -28,17 +28,15 @@
         </div>
     </div>
 
-    <!-- Экран выбора героев -->
+    <!-- Экран выбора героя -->
     <div id="hero-selection-screen" class="screen hidden">
         <div class="hero-selection-panel">
-            <h1>Выбор героев</h1>
+            <h1>Выбор героя</h1>
             <div class="selection-info">
-                <p>Выберите <strong id="heroes-to-select">3</strong> героев для вашей команды</p>
-                <div id="selected-count" class="selected-count">Выбрано: 0/3</div>
+                <p>Выберите героя из доступных стилей</p>
+                <div id="available-styles-info" class="styles-info"></div>
             </div>
-            <div id="hero-selection-grid" class="hero-selection-grid"></div>
-            <button id="confirm-selection-btn" class="btn btn-primary" disabled>Подтвердить выбор</button>
-            <div id="waiting-message" class="waiting-message hidden">Ожидание другого игрока...</div>
+            <div id="hero-selection-container" class="hero-selection-grid"></div>
         </div>
     </div>
 
@@ -60,34 +58,45 @@
                         <span class="label">Жизни:</span>
                         <span id="lives">100</span>
                     </div>
+                    <div class="info-item">
+                        <span class="label">Золото:</span>
+                        <span id="gold">10</span>
+                    </div>
                 </div>
             </header>
 
-            <div class="main-content two-players">
-                <!-- Ваша арена -->
-                <div class="player-arena">
-                    <h2 class="arena-title">Ваша команда</h2>
-                    <div id="player-arena" class="arena-grid-small"></div>
-                    <div class="arena-info">
-                        <div class="heroes-list" id="player-heroes-list"></div>
-                    </div>
+            <div class="main-content single-gladiator">
+                <!-- Левая панель: Гладиатор -->
+                <div class="left-panel">
+                    <div id="gladiator" class="gladiator-section"></div>
                 </div>
 
-                <!-- Центральная панель -->
+                <!-- Центральная панель: Магазин -->
                 <div class="center-panel">
-                    <div class="battle-status" id="battle-status">
-                        <div class="status-text">Подготовка к бою</div>
+                    <div class="shop-section">
+                        <div class="shop-header">
+                            <h2>Магазин карточек</h2>
+                            <button id="refresh-shop-btn" class="btn btn-secondary">Обновить (2 золота)</button>
+                        </div>
+                        <div id="shop" class="shop-grid"></div>
+                        <div class="available-styles" id="available-styles"></div>
                     </div>
-                    <button id="ready-btn" class="btn btn-primary btn-large">Готов к бою</button>
-                    <button id="not-ready-btn" class="btn btn-secondary btn-large hidden">Отменить готовность</button>
+                    <div class="battle-status-section">
+                        <div class="battle-status" id="battle-status">Подготовка к бою</div>
+                        <button id="ready-btn" class="btn btn-primary btn-large">Готов к бою</button>
+                        <button id="not-ready-btn" class="btn btn-secondary btn-large hidden">Отменить готовность</button>
+                    </div>
                 </div>
 
-                <!-- Арена противника -->
-                <div class="enemy-arena">
-                    <h2 class="arena-title">Команда противника</h2>
-                    <div id="enemy-arena" class="arena-grid-small"></div>
-                    <div class="arena-info">
-                        <div class="heroes-list" id="enemy-heroes-list"></div>
+                <!-- Правая панель: Противник -->
+                <div class="right-panel">
+                    <div id="enemy-gladiator" class="gladiator-section enemy">
+                        <div class="gladiator-display">
+                            <h3>Противник</h3>
+                            <div class="gladiator-stats">
+                                <div>Ожидание...</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
