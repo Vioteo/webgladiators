@@ -332,6 +332,38 @@ body {
     margin-top: 3px;
 }
 
+.hero-card-image {
+    width: 100%;
+    height: 150px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hero-preview-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.enemy-selection-info {
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    font-size: 0.95em;
+}
+
+.enemy-selection-info p {
+    margin: 0;
+}
+
 .styles-info {
     margin-bottom: 15px;
     padding: 10px;
@@ -1017,7 +1049,7 @@ body {
     width: 100%;
     height: 100%;
     pointer-events: none;
-    z-index: 100;
+    z-index: 10000;
     overflow: visible;
 }
 
@@ -1027,12 +1059,13 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 1.2em;
+    font-size: 1.5em;
     font-weight: bold;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 1), 0 0 10px rgba(0, 0, 0, 0.8);
     animation: damageFloat 2s ease-out forwards;
-    z-index: 200;
+    z-index: 10001;
     pointer-events: none;
+    white-space: nowrap;
 }
 
 .damage-number.crit {
@@ -1114,16 +1147,26 @@ body {
 
 /* Журнал боя */
 .battle-log-container {
-    position: absolute;
+    position: fixed;
     bottom: 20px;
     left: 20px;
     right: 20px;
     max-height: 200px;
-    background: rgba(0, 0, 0, 0.8);
+    max-width: 500px;
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid rgba(255, 255, 255, 0.3);
     border-radius: 10px;
     padding: 15px;
     overflow-y: auto;
-    z-index: 1000;
+    z-index: 10002;
+    backdrop-filter: blur(5px);
+}
+
+.battle-visualization.battle-fullscreen .battle-log-container {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    max-width: 400px;
 }
 
 .battle-log-container h4 {
@@ -1189,7 +1232,7 @@ body {
 .battle-hero-image {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     image-rendering: crisp-edges;
     animation: heroIdle 2s ease-in-out infinite;
 }
@@ -1208,22 +1251,33 @@ body {
     min-width: 0;
 }
 
-.battle-gladiator-name {
-    font-size: 1.5em;
+.battle-player-name {
+    font-size: 1.2em;
     font-weight: bold;
-    margin-bottom: 15px;
+    margin-bottom: 5px;
+    text-align: left;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    color: #ffd700;
+    opacity: 0.9;
+}
+
+.battle-gladiator-name {
+    font-size: 1.3em;
+    font-weight: bold;
+    margin-bottom: 10px;
     text-align: left;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .battle-health-bar, .battle-mana-bar {
-    height: 32px;
+    height: 28px;
     background: rgba(0, 0, 0, 0.5);
     border-radius: 6px;
-    margin: 10px 0;
+    margin: 8px 0;
     position: relative;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.2);
+    min-height: 28px;
 }
 
 .battle-health-fill {
@@ -1279,11 +1333,14 @@ body {
     position: absolute;
     width: 100%;
     text-align: center;
-    line-height: 30px;
+    line-height: 28px;
     font-weight: bold;
-    font-size: 0.9em;
+    font-size: 0.75em;
     z-index: 2;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .effects-display {

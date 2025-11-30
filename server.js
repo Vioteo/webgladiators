@@ -16,6 +16,59 @@ const rooms = new Map();
 // Все стили
 const ALL_STYLES = ['critical', 'frost', 'poison', 'fury', 'tank', 'evasion', 'shield', 'ultimate'];
 
+// Нейтральные монстры для раундов 2, 4, 6
+const NEUTRAL_MONSTERS = [
+    { // Раунд 2
+        name: 'Гоблин-Вождь',
+        health: 15000,
+        damage: 80,
+        armor: 3,
+        attackSpeed: 1.5,
+        tier: 1
+    },
+    { // Раунд 4
+        name: 'Тролль-Берсерк',
+        health: 25000,
+        damage: 120,
+        armor: 5,
+        attackSpeed: 1.3,
+        tier: 2
+    },
+    { // Раунд 6
+        name: 'Дракон-Разрушитель',
+        health: 40000,
+        damage: 180,
+        armor: 8,
+        attackSpeed: 1.2,
+        tier: 3
+    }
+];
+
+// Награды (шмотки) по тирам
+const NEUTRAL_REWARDS = {
+    1: [ // Тир 1 (раунд 2)
+        { type: 'health', value: 1500, name: 'Бустер здоровья +1500' },
+        { type: 'damage', value: 75, name: 'Усиление урона +75' },
+        { type: 'armor', value: 3, name: 'Броня +3' },
+        { type: 'attackSpeed', value: 15, name: 'Скорость атаки +15%' },
+        { type: 'gold', value: 50, name: 'Золото +50' }
+    ],
+    2: [ // Тир 2 (раунд 4)
+        { type: 'health', value: 2500, name: 'Бустер здоровья +2500' },
+        { type: 'damage', value: 125, name: 'Усиление урона +125' },
+        { type: 'armor', value: 5, name: 'Броня +5' },
+        { type: 'attackSpeed', value: 25, name: 'Скорость атаки +25%' },
+        { type: 'gold', value: 100, name: 'Золото +100' }
+    ],
+    3: [ // Тир 3 (раунд 6)
+        { type: 'health', value: 4000, name: 'Бустер здоровья +4000' },
+        { type: 'damage', value: 200, name: 'Усиление урона +200' },
+        { type: 'armor', value: 8, name: 'Броня +8' },
+        { type: 'attackSpeed', value: 40, name: 'Скорость атаки +40%' },
+        { type: 'gold', value: 200, name: 'Золото +200' }
+    ]
+};
+
 // Генерация уникального ID комнаты
 function generateRoomId() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -207,7 +260,8 @@ io.on('connection', (socket) => {
         if (room.players.length === 2) {
             io.to(roomId).emit('styles-selected', {
                 styles: room.availableStyles,
-                blockedStyles: room.blockedStyles
+                blockedStyles: room.blockedStyles,
+                playerNames: room.players.map(p => ({ id: p.id, name: p.name }))
             });
         }
         
@@ -274,9 +328,14 @@ io.on('connection', (socket) => {
                 ready: true
             });
 
-            // Если оба игрока готовы, начинаем бой
+            // Если оба игрока готовы, начинаем бой (или бой с нейтралом)
             if (room.players.length === 2 && room.players.every(p => p.ready)) {
-                startBattle(room);
+                // Проверяем, нужно ли бить с нейтральным монстром (раунды 2, 4, 6)
+                if (room.round === 2 || room.round === 4 || room.round === 6) {
+                    startNeutralBattle(room);
+                } else {
+                    startBattle(room);
+                }
             }
         }
     });
@@ -373,8 +432,8 @@ function startBattle(room) {
             loserPlayer = player1;
         }
 
-        // Проигравший теряет жизни
-        const damageToLives = Math.max(10, Math.floor((loserPlayer.gladiator.maxHealth - (winner === 1 ? gladiator1.currentHealth : gladiator2.currentHealth)) / 50));
+        // Проигравший теряет жизни: фиксированно 10 + количество раундов
+        const damageToLives = 10 + room.round;
         loserPlayer.lives -= damageToLives;
         
         // Восстанавливаем здоровье гладиаторов после боя для следующего раунда
@@ -396,6 +455,8 @@ function startBattle(room) {
             gameOver: loserPlayer.lives <= 0,
             player1Id: player1.id,
             player2Id: player2.id,
+            player1Name: player1.name,
+            player2Name: player2.name,
             gladiator1Health: gladiator1.currentHealth,
             gladiator2Health: gladiator2.currentHealth,
             player1Gold: player1.gold,
@@ -456,6 +517,201 @@ function startBattle(room) {
             }, 5000); // Увеличено время для просмотра результата
         }
     });
+}
+
+// Функция боя с нейтральным монстром
+function startNeutralBattle(room) {
+    console.log(`Начинается бой с нейтральным монстром в комнате ${room.id}, раунд ${room.round}`);
+    room.gameState = 'playing';
+    
+    const [player1, player2] = room.players;
+    const monsterIndex = (room.round / 2) - 1; // 0 для раунда 2, 1 для 4, 2 для 6
+    const monster = JSON.parse(JSON.stringify(NEUTRAL_MONSTERS[monsterIndex]));
+    const tier = monster.tier;
+    
+    // Копируем гладиаторов для боя
+    const gladiator1 = JSON.parse(JSON.stringify(player1.gladiator));
+    const gladiator2 = JSON.parse(JSON.stringify(player2.gladiator));
+    
+    // Инициализация для боя
+    gladiator1.currentHealth = gladiator1.maxHealth || gladiator1.health;
+    gladiator1.mana = 0;
+    gladiator1.activeCooldown = 0;
+    
+    gladiator2.currentHealth = gladiator2.maxHealth || gladiator2.health;
+    gladiator2.mana = 0;
+    gladiator2.activeCooldown = 0;
+    
+    monster.currentHealth = monster.health;
+    monster.mana = 0;
+    monster.maxHealth = monster.health;
+    
+    // Бой происходит по очереди: сначала первый игрок, потом второй
+    const fightPlayer = (playerGlad, player, isPlayer1, callback) => {
+        const playerMonster = JSON.parse(JSON.stringify(monster));
+        
+        io.to(player.id).emit('neutral-battle-started', {
+            gladiator: { 
+                name: playerGlad.name, 
+                health: playerGlad.currentHealth, 
+                maxHealth: playerGlad.maxHealth, 
+                mana: 0,
+                maxMana: playerGlad.maxMana || 200,
+                effects: getEffectsDisplay(playerGlad)
+            },
+            monster: {
+                name: playerMonster.name,
+                health: playerMonster.currentHealth,
+                maxHealth: playerMonster.maxHealth
+            },
+            tier: tier
+        });
+        
+        simulateBattle(playerGlad, playerMonster, room.id, (winner, log, updates) => {
+            callback(winner === 1, playerGlad, tier);
+        }, true); // true = нейтральный бой (игрок против монстра)
+    };
+    
+    // Оба игрока сражаются одновременно (отдельные бои)
+    let player1Won = false;
+    let player2Won = false;
+    let completed = 0;
+    
+    const onComplete = (isPlayer1, won, gladiator) => {
+        if (isPlayer1) {
+            player1Won = won;
+            if (won) {
+                player1.gladiator = gladiator; // Обновляем гладиатора после боя
+            }
+        } else {
+            player2Won = won;
+            if (won) {
+                player2.gladiator = gladiator; // Обновляем гладиатора после боя
+            }
+        }
+        
+        completed++;
+        if (completed === 2) {
+            // Оба боя завершены, раздаем награды
+            handleNeutralBattleRewards(room, player1, player2, player1Won, player2Won, tier);
+        }
+    };
+    
+    fightPlayer(gladiator1, player1, true, (won, glad) => onComplete(true, won, glad));
+    fightPlayer(gladiator2, player2, false, (won, glad) => onComplete(false, won, glad));
+}
+
+// Обработка наград за бой с нейтралом
+function handleNeutralBattleRewards(room, player1, player2, player1Won, player2Won, tier) {
+    const rewards = NEUTRAL_REWARDS[tier];
+    
+    // Генерируем 3 случайные награды для выбора
+    const generateRewardOptions = () => {
+        const options = [];
+        const shuffled = [...rewards].sort(() => Math.random() - 0.5);
+        return shuffled.slice(0, 3);
+    };
+    
+    // Обработка награды для игрока
+    const giveReward = (player, won, reward) => {
+        if (!reward) return;
+        
+        switch(reward.type) {
+            case 'health':
+                player.gladiator.maxHealth += reward.value;
+                player.gladiator.currentHealth += reward.value;
+                break;
+            case 'damage':
+                player.gladiator.damage += reward.value;
+                break;
+            case 'armor':
+                player.gladiator.armor += reward.value;
+                break;
+            case 'attackSpeed':
+                player.gladiator.attackSpeed += reward.value / 100;
+                break;
+            case 'gold':
+                player.gold += reward.value;
+                break;
+        }
+    };
+    
+    if (player1Won) {
+        const options = generateRewardOptions();
+        player1.socket.emit('choose-neutral-reward', { options, tier });
+        player1.pendingReward = { options, won: true, tier };
+    } else {
+        // Случайная награда при поражении
+        const randomReward = rewards[Math.floor(Math.random() * rewards.length)];
+        giveReward(player1, false, randomReward);
+        player1.socket.emit('neutral-battle-result', { 
+            won: false, 
+            reward: randomReward,
+            tier 
+        });
+        room.neutralRewardChoices.player1 = true;
+    }
+    
+    if (player2Won) {
+        const options = generateRewardOptions();
+        player2.socket.emit('choose-neutral-reward', { options, tier });
+        player2.pendingReward = { options, won: true, tier };
+    } else {
+        // Случайная награда при поражении
+        const randomReward = rewards[Math.floor(Math.random() * rewards.length)];
+        giveReward(player2, false, randomReward);
+        player2.socket.emit('neutral-battle-result', { 
+            won: false, 
+            reward: randomReward,
+            tier 
+        });
+        room.neutralRewardChoices.player2 = true;
+    }
+    
+    // Инициализация ожидания выбора наград
+    room.neutralRewardWaiting = true;
+    if (!room.neutralRewardChoices) {
+        room.neutralRewardChoices = {};
+    }
+    
+    // Если оба уже получили награды (поражения), продолжаем игру сразу
+    if (room.neutralRewardChoices.player1 && room.neutralRewardChoices.player2 && !player1Won && !player2Won) {
+        continueAfterNeutralBattle(room, player1, player2);
+    }
+    
+    // Таймер на случай, если выбор затянется
+    setTimeout(() => {
+        if (room.neutralRewardWaiting) {
+            continueAfterNeutralBattle(room, player1, player2);
+        }
+    }, 15000);
+}
+
+// Продолжение игры после нейтрального боя
+function continueAfterNeutralBattle(room, player1, player2) {
+    if (!room.neutralRewardWaiting) return;
+    room.neutralRewardWaiting = false;
+    
+    room.round++; // Увеличиваем раунд после нейтрального боя
+    
+    setTimeout(() => {
+        room.players.forEach(p => {
+            p.ready = false;
+        });
+        room.gameState = 'preparing';
+        const styles = generateRandomStyles();
+        room.availableStyles = styles.available;
+        room.blockedStyles = styles.blocked;
+        io.to(room.id).emit('round-end', {
+            player1Gold: player1.gold,
+            player2Gold: player2.gold,
+            player1Id: player1.id,
+            player2Id: player2.id,
+            availableStyles: styles.available,
+            blockedStyles: styles.blocked,
+            round: room.round
+        });
+    }, 2000);
 }
 
 // Симуляция боя 1 на 1
@@ -659,10 +915,29 @@ function attack(attacker, defender) {
         }
     }
     
+    // Проверяем множитель от невидимости (Riki)
+    let damageMultiplier = 1;
+    if (attacker.nextAttackMultiplier && attacker.nextAttackMultiplier > 1) {
+        damageMultiplier = attacker.nextAttackMultiplier;
+        attacker.nextAttackMultiplier = 1; // Сбрасываем после использования
+    }
+    
     const damageResult = calculateDamage(attacker, defender);
-    const damage = damageResult.damage;
-    const isCrit = damageResult.isCrit || false;
+    let damage = damageResult.damage;
+    let isCrit = damageResult.isCrit || false;
     const blockedDamage = damageResult.blockedDamage || 0;
+    
+    // Применяем множитель от невидимости
+    if (damageMultiplier > 1) {
+        damage = Math.floor(damage * damageMultiplier);
+        isCrit = true; // Невидимый удар всегда крит
+    }
+    
+    // Проверяем крит от пассивной способности
+    if (attacker.passiveCrit) {
+        isCrit = true;
+        attacker.passiveCrit = false; // Сбрасываем флаг
+    }
     
     defender.currentHealth = Math.max(0, defender.currentHealth - damage);
     
@@ -767,14 +1042,16 @@ function applyPassiveAbility(gladiator, target, damage) {
         target.slowed = Math.max(target.slowed, 2); // 2 секунды
     }
     
-    // Гниение (Pudge) - периодический урон
+    // Гниение (Pudge) - периодический урон (увеличено для нового масштаба HP)
     if (passive === 'Гниение') {
-        target.currentHealth -= 10;
+        target.currentHealth -= 100; // Увеличено с 10 до 100
     }
     
     // Удар в спину (Riki) - крит сзади (упрощенно - просто шанс крита)
     if (passive === 'Удар в спину' && Math.random() < 0.3) {
         damage *= 2.5;
+        // Отмечаем что это крит для визуализации
+        if (!gladiator.passiveCrit) gladiator.passiveCrit = true;
     }
     
     // Восстановление маны (Crystal Maiden) - уже учтено в симуляции
@@ -782,11 +1059,8 @@ function applyPassiveAbility(gladiator, target, damage) {
         gladiator.mana = Math.min(gladiator.maxMana || 200, (gladiator.mana || 0) + 2);
     }
     
-    // Танец клинка (Juggernaut) - уклонение и контратака
-    if (passive === 'Танец клинка' && Math.random() < 0.25) {
-        // Уклонение обрабатывается при атаке
-        return 0; // Уклонение
-    }
+    // Танец клинка (Juggernaut) - уклонение обрабатывается в функции attack через evasionChance
+    // Здесь не нужно ничего делать, уклонение уже обработано
     
     // Жар (Lina) - увеличение скорости атаки
     if (passive === 'Жар') {
@@ -799,7 +1073,7 @@ function applyPassiveAbility(gladiator, target, damage) {
 }
 
 // Применение пассивных эффектов
-function applyPassiveEffects(gladiator, target) {
+function applyPassiveEffects(gladiator, target, roomId = null, glad1 = null, glad2 = null) {
     let logMessage = null;
     
     // Обновление эффектов замедления
@@ -810,11 +1084,21 @@ function applyPassiveEffects(gladiator, target) {
         }
     }
     
-    // Гниение (Pudge) - периодический урон
+    // Гниение (Pudge) - периодический урон (увеличено для нового масштаба HP)
     if (gladiator.passive && gladiator.passive.name === 'Гниение') {
-        const rotDamage = 10 + ((gladiator.effects && gladiator.effects.poisonDamage) || 0);
+        const rotDamage = 100 + ((gladiator.effects && gladiator.effects.poisonDamage) || 0);
         target.currentHealth = Math.max(0, target.currentHealth - rotDamage);
         logMessage = `${gladiator.name}: Гниение наносит ${rotDamage} урона ${target.name}`;
+        
+        // Отправляем урон для визуализации
+        const isPlayer1 = gladiator === glad1;
+        io.to(roomId).emit('battle-damage', {
+            target: isPlayer1 ? 2 : 1,
+            damage: rotDamage,
+            isCrit: false,
+            isEvaded: false,
+            blockedDamage: 0
+        });
     }
     
     // Яд (эффект карточек)

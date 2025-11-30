@@ -41,11 +41,11 @@ const HEROES = [
         attackSpeed: 1.2,
         passive: {
             name: 'Берсерк',
-            description: 'При потере здоровья увеличивает броню на 0.5 за каждые 10% потерянного здоровья'
+            description: 'При потере здоровья автоматически увеличивает броню. Чем больше потеряно здоровья, тем выше защита (до +5 брони при критическом здоровье)'
         },
         active: {
             name: 'Берсеркер Крик',
-            description: 'Притягивает врага и увеличивает свою броню на 5 на 3 секунды',
+            description: 'Увеличивает броню на 5 на 3 секунды. Делает гладиатора более устойчивым к урону',
             manaCost: 100,
             cooldown: 8000
         }
@@ -60,11 +60,11 @@ const HEROES = [
         attackSpeed: 1.5,
         passive: {
             name: 'Божественная Сила',
-            description: 'Каждая атака имеет 20% шанс нанести критический урон x2'
+            description: 'Каждая атака имеет 20% шанс нанести критический урон (x2). Постоянно усиливает боевую мощь'
         },
         active: {
             name: 'Божественная Сила',
-            description: 'Увеличивает урон на 100% и скорость атаки на 50% на 5 секунд',
+            description: 'Активирует божественную мощь: урон увеличивается в 2 раза, скорость атаки на 50% выше на 5 секунд',
             manaCost: 120,
             cooldown: 12000
         }
@@ -79,11 +79,11 @@ const HEROES = [
         attackSpeed: 1.8,
         passive: {
             name: 'Морозные Стрелы',
-            description: 'Атаки замедляют врага на 20% на 2 секунды'
+            description: 'Каждая атака замедляет врага на 20% на 2 секунды. Непрерывно контролирует противника'
         },
         active: {
             name: 'Молчание',
-            description: 'Останавливает врага на 2 секунды и наносит 150 урона',
+            description: 'Наносит 1500 урона врагу и замедляет его на 2 секунды. Мощный контрольный эффект',
             manaCost: 90,
             cooldown: 10000
         }
@@ -98,11 +98,11 @@ const HEROES = [
         attackSpeed: 1.1,
         passive: {
             name: 'Гниение',
-            description: 'Наносит 10 урона в секунду всем врагам в радиусе'
+            description: 'Постоянно наносит 100 урона в секунду врагу. Непрерывный урон от токсичного разложения'
         },
         active: {
             name: 'Крюк',
-            description: 'Притягивает врага и наносит 200 урона',
+            description: 'Мощный крюк, наносящий 2000 урона врагу. Огромный всплеск урона',
             manaCost: 110,
             cooldown: 14000
         }
@@ -117,11 +117,11 @@ const HEROES = [
         attackSpeed: 1.7,
         passive: {
             name: 'Удар в спину',
-            description: 'Атаки сзади наносят критический урон x2.5'
+            description: 'Каждая атака имеет 30% шанс нанести критический урон x2.5. Постоянная угроза критических ударов'
         },
         active: {
             name: 'Невидимость',
-            description: 'Становится невидимым на 3 секунды, следующий удар наносит x3 урона',
+            description: 'Становится невидимым на 3 секунды. Следующий удар наносит урон в 3 раза больше обычного',
             manaCost: 80,
             cooldown: 15000
         }
@@ -136,11 +136,11 @@ const HEROES = [
         attackSpeed: 1.6,
         passive: {
             name: 'Восстановление маны',
-            description: 'Восстанавливает ману на 50% быстрее'
+            description: 'Восстанавливает ману на 50% быстрее, чем обычно. Позволяет чаще использовать способности'
         },
         active: {
             name: 'Ледяной Взрыв',
-            description: 'Наносит 180 урона и замедляет врага на 50% на 4 секунды',
+            description: 'Мощный ледяной взрыв, наносящий 1800 урона и замедляющий врага на 50% на 4 секунды. Сильное замедление и урон',
             manaCost: 100,
             cooldown: 9000
         }
@@ -155,11 +155,11 @@ const HEROES = [
         attackSpeed: 1.6,
         passive: {
             name: 'Танец клинка',
-            description: 'Имеет 25% шанс уклониться от атаки и контратаковать'
+            description: 'Имеет 25% шанс уклониться от любой атаки врага. Высокая выживаемость через уклонение'
         },
         active: {
             name: 'Вихрь',
-            description: 'Становится неуязвимым и наносит 50 урона в секунду в течение 5 секунд',
+            description: 'Становится полностью неуязвимым на 5 секунд и наносит 500 урона в секунду врагу. Полная защита и постоянный урон',
             manaCost: 130,
             cooldown: 16000
         }
@@ -174,11 +174,11 @@ const HEROES = [
         attackSpeed: 1.7,
         passive: {
             name: 'Жар',
-            description: 'Каждая атака увеличивает скорость атаки на 5% (макс. 50%)'
+            description: 'Каждая атака увеличивает скорость атаки на 5%. Максимум +50% скорости атаки (10 стаков). Разгоняется во время боя'
         },
         active: {
             name: 'Лагуна Блейд',
-            description: 'Наносит 300 чистого урона',
+            description: 'Наносит 3000 чистого урона, игнорируя броню врага. Самый мощный единичный урон в игре',
             manaCost: 200,
             cooldown: 20000
         }
@@ -201,63 +201,77 @@ const CARDS = {
         { id: 'crit_damage_1', name: 'Урон крита +50%', rarity: 'uncommon', effect: { critDamage: 50 } },
         { id: 'crit_chance_2', name: 'Шанс крита +20%', rarity: 'rare', effect: { critChance: 20 } },
         { id: 'crit_on_kill', name: 'Крит при убийстве', rarity: 'epic', effect: { critOnKill: true } },
-        { id: 'crit_master', name: 'Мастер крита', rarity: 'legendary', effect: { critChance: 30, critDamage: 100 } }
+        { id: 'crit_master', name: 'Мастер крита', rarity: 'legendary', effect: { critChance: 30, critDamage: 100 } },
+        { id: 'crit_lifesteal_1', name: 'Кровопийца +10%', rarity: 'uncommon', effect: { lifesteal: 10 } },
+        { id: 'crit_execute', name: 'Казнь критом', rarity: 'epic', effect: { critExecute: true } }
     ],
     frost: [
         { id: 'frost_slow_1', name: 'Замедление +15%', rarity: 'common', effect: { slow: 15 } },
-        { id: 'frost_damage_1', name: 'Урон мороза +20', rarity: 'uncommon', effect: { frostDamage: 20 } },
+        { id: 'frost_damage_1', name: 'Урон мороза +100', rarity: 'uncommon', effect: { frostDamage: 100 } },
         { id: 'frost_stack_1', name: 'Стаки мороза +1', rarity: 'rare', effect: { frostStack: 1 } },
         { id: 'frost_freeze', name: 'Замораживание', rarity: 'epic', effect: { freeze: true } },
-        { id: 'frost_master', name: 'Мастер мороза', rarity: 'legendary', effect: { slow: 50, frostDamage: 50 } }
+        { id: 'frost_master', name: 'Мастер мороза', rarity: 'legendary', effect: { slow: 50, frostDamage: 250 } },
+        { id: 'frost_shield', name: 'Ледяной щит', rarity: 'rare', effect: { frostShield: true } },
+        { id: 'frost_burst', name: 'Ледяной взрыв', rarity: 'epic', effect: { frostBurst: true } }
     ],
     poison: [
-        { id: 'poison_damage_1', name: 'Урон яда +10', rarity: 'common', effect: { poisonDamage: 10 } },
+        { id: 'poison_damage_1', name: 'Урон яда +50', rarity: 'common', effect: { poisonDamage: 50 } },
         { id: 'poison_stack_1', name: 'Стаки яда +2', rarity: 'uncommon', effect: { poisonStack: 2 } },
         { id: 'poison_duration_1', name: 'Длительность +3с', rarity: 'rare', effect: { poisonDuration: 3 } },
         { id: 'poison_explode', name: 'Взрыв яда', rarity: 'epic', effect: { poisonExplode: true } },
-        { id: 'poison_master', name: 'Мастер яда', rarity: 'legendary', effect: { poisonDamage: 30, poisonStack: 5 } }
+        { id: 'poison_master', name: 'Мастер яда', rarity: 'legendary', effect: { poisonDamage: 150, poisonStack: 5 } },
+        { id: 'poison_venom', name: 'Смертельный яд', rarity: 'rare', effect: { deadlyPoison: true } },
+        { id: 'poison_cloud', name: 'Ядовитое облако', rarity: 'epic', effect: { poisonCloud: true } }
     ],
     fury: [
         { id: 'fury_attack_1', name: 'Скорость атаки +10%', rarity: 'common', effect: { attackSpeed: 10 } },
-        { id: 'fury_damage_1', name: 'Урон при ярости +15', rarity: 'uncommon', effect: { furyDamage: 15 } },
+        { id: 'fury_damage_1', name: 'Урон при ярости +75', rarity: 'uncommon', effect: { furyDamage: 75 } },
         { id: 'fury_stack_1', name: 'Стаки ярости +2', rarity: 'rare', effect: { furyStack: 2 } },
         { id: 'fury_berserk', name: 'Берсерк', rarity: 'epic', effect: { berserk: true } },
-        { id: 'fury_master', name: 'Мастер ярости', rarity: 'legendary', effect: { attackSpeed: 30, furyDamage: 40 } }
+        { id: 'fury_master', name: 'Мастер ярости', rarity: 'legendary', effect: { attackSpeed: 30, furyDamage: 200 } }
     ],
     tank: [
         { id: 'tank_health_1', name: 'Здоровье +1000', rarity: 'common', effect: { health: 1000 } },
         { id: 'tank_armor_1', name: 'Броня +2', rarity: 'uncommon', effect: { armor: 2 } },
         { id: 'tank_regen_1', name: 'Реген +50/с', rarity: 'rare', effect: { regen: 50 } },
         { id: 'tank_thorns', name: 'Шипы', rarity: 'epic', effect: { thorns: true } },
-        { id: 'tank_master', name: 'Мастер танка', rarity: 'legendary', effect: { health: 3000, armor: 5 } }
+        { id: 'tank_master', name: 'Мастер танка', rarity: 'legendary', effect: { health: 3000, armor: 5 } },
+        { id: 'tank_taunt', name: 'Провокация', rarity: 'rare', effect: { taunt: true } },
+        { id: 'tank_rage', name: 'Ярость танка', rarity: 'epic', effect: { tankRage: true } }
     ],
     evasion: [
         { id: 'evasion_chance_1', name: 'Шанс уклонения +10%', rarity: 'common', effect: { evasionChance: 10 } },
         { id: 'evasion_counter_1', name: 'Контратака при уклонении', rarity: 'uncommon', effect: { counterAttack: true } },
         { id: 'evasion_dodge_1', name: 'Полное уклонение +5%', rarity: 'rare', effect: { fullEvasion: 5 } },
         { id: 'evasion_blink', name: 'Блинк при уклонении', rarity: 'epic', effect: { blink: true } },
-        { id: 'evasion_master', name: 'Мастер уклонения', rarity: 'legendary', effect: { evasionChance: 30, counterAttack: true } }
+        { id: 'evasion_master', name: 'Мастер уклонения', rarity: 'legendary', effect: { evasionChance: 30, counterAttack: true } },
+        { id: 'evasion_agility', name: 'Ловкость +20%', rarity: 'uncommon', effect: { agility: 20 } },
+        { id: 'evasion_phase', name: 'Фазовый сдвиг', rarity: 'epic', effect: { phaseShift: true } }
     ],
     shield: [
-        { id: 'shield_block_1', name: 'Блок +50', rarity: 'common', effect: { shieldBlock: 50 } },
+        { id: 'shield_block_1', name: 'Блок +100', rarity: 'common', effect: { shieldBlock: 100 } },
         { id: 'shield_regen_1', name: 'Восстановление щита', rarity: 'uncommon', effect: { shieldRegen: true } },
         { id: 'shield_reflect_1', name: 'Отражение урона 20%', rarity: 'rare', effect: { reflect: 20 } },
         { id: 'shield_barrier', name: 'Барьер', rarity: 'epic', effect: { barrier: true } },
-        { id: 'shield_master', name: 'Мастер щита', rarity: 'legendary', effect: { shieldBlock: 200, reflect: 40 } }
+        { id: 'shield_master', name: 'Мастер щита', rarity: 'legendary', effect: { shieldBlock: 400, reflect: 40 } }
     ],
     ultimate: [
         { id: 'ult_cooldown_1', name: 'Перезарядка -20%', rarity: 'common', effect: { cooldown: -20 } },
-        { id: 'ult_damage_1', name: 'Урон ульты +50', rarity: 'uncommon', effect: { ultDamage: 50 } },
+        { id: 'ult_damage_1', name: 'Урон ульты +250', rarity: 'uncommon', effect: { ultDamage: 250 } },
         { id: 'ult_chain_1', name: 'Цепная ульта', rarity: 'rare', effect: { chain: true } },
         { id: 'ult_execute', name: 'Казнь', rarity: 'epic', effect: { execute: true } },
-        { id: 'ult_master', name: 'Мастер ульты', rarity: 'legendary', effect: { ultDamage: 150, cooldown: -50 } }
+        { id: 'ult_master', name: 'Мастер ульты', rarity: 'legendary', effect: { ultDamage: 750, cooldown: -50 } },
+        { id: 'ult_charge', name: 'Заряд ульты', rarity: 'uncommon', effect: { ultCharge: true } },
+        { id: 'ult_overcharge', name: 'Перегрузка', rarity: 'epic', effect: { ultOvercharge: true } }
     ],
     heal: [
         { id: 'heal_regen_1', name: 'Регенерация +50', rarity: 'common', effect: { regen: 50 } },
         { id: 'heal_amount_1', name: 'Лечение +300', rarity: 'uncommon', effect: { healAmount: 300 } },
         { id: 'heal_on_hit_1', name: 'Лечение при атаке +100', rarity: 'rare', effect: { healOnHit: 100 } },
         { id: 'heal_shield', name: 'Щит восстановления', rarity: 'epic', effect: { healShield: true, shieldAmount: 1000 } },
-        { id: 'heal_master', name: 'Мастер лечения', rarity: 'legendary', effect: { regen: 150, healAmount: 500 } }
+        { id: 'heal_master', name: 'Мастер лечения', rarity: 'legendary', effect: { regen: 150, healAmount: 500 } },
+        { id: 'heal_burst', name: 'Мгновенное лечение', rarity: 'rare', effect: { healBurst: true } },
+        { id: 'heal_aoe', name: 'Массовое лечение', rarity: 'epic', effect: { healAOE: true } }
     ]
 };
 
@@ -303,6 +317,8 @@ let gameState = {
     socket: null,
     playerName: '',
     roomId: null,
+    enemyName: '', // Имя противника
+    enemyReady: false, // Статус готовности противника
     availableStyles: [], // Доступные стили (случайные)
     blockedStyles: [], // Заблокированные стили
     selectedHero: null, // Выбранный герой
@@ -629,6 +645,8 @@ function setupSocketListeners() {
     gameState.socket.on('hero-selected', (data) => {
         if (data.playerId !== gameState.socket.id) {
             addLog('Противник выбрал героя', 'info');
+            // Обновляем информацию о противнике на экране выбора
+            updateEnemySelectionInfo();
         }
     });
     
@@ -645,6 +663,8 @@ function setupSocketListeners() {
     
     gameState.socket.on('player-ready-status', (data) => {
         if (data.playerId !== gameState.socket.id) {
+            gameState.enemyReady = data.ready;
+            renderEnemyInfo();
             addLog(data.ready ? 'Противник готов к бою!' : 'Противник отменил готовность', 'info');
         }
     });
@@ -751,6 +771,13 @@ function setupSocketListeners() {
             gameState.gold = isPlayer1 ? data.player1Gold : data.player2Gold;
         }
         
+        // Обновляем информацию о противнике
+        if (data.player1Name && data.player2Name) {
+            const isPlayer1 = gameState.socket.id === (data.player1Id || '');
+            gameState.enemyName = isPlayer1 ? data.player2Name : data.player1Name;
+            gameState.enemyReady = isPlayer1 ? (data.player2Ready || false) : (data.player1Ready || false);
+        }
+        
         // Обновляем доступные стили для магазина
         if (data.availableStyles) {
             gameState.availableStyles = data.availableStyles;
@@ -762,6 +789,9 @@ function setupSocketListeners() {
         if (gameState.gladiator) {
             gameState.gladiator.currentHealth = gameState.gladiator.maxHealth;
         }
+        
+        // Обновляем отображение противника
+        renderEnemyInfo();
         
         // Скрываем визуализацию боя
         const battleViz = document.getElementById('battle-visualization');
@@ -1430,6 +1460,9 @@ function renderGladiator() {
     // Купленные способности справа
     renderOwnedCards();
     
+    // Отображаем информацию о противнике
+    renderEnemyInfo();
+    
     // Fallback для старого layout
     const gladiatorContainer = document.getElementById('gladiator');
     if (gladiatorContainer && !statsContainer) {
@@ -1454,6 +1487,40 @@ function renderGladiator() {
                 </div>
             </div>
         `;
+    }
+}
+
+// Рендеринг информации о противнике
+function renderEnemyInfo() {
+    const enemyContainer = document.getElementById('enemy-gladiator-normal');
+    if (!enemyContainer) return;
+    
+    if (!gameState.enemyName) {
+        enemyContainer.innerHTML = '<p>Ожидание противника...</p>';
+        return;
+    }
+    
+    const readyStatus = gameState.enemyReady ? 
+        '<span style="color: #4caf50; font-weight: bold;">✓ Готов</span>' : 
+        '<span style="color: #ff9800;">Ожидание...</span>';
+    
+    enemyContainer.innerHTML = `
+        <div class="enemy-player-info">
+            <div class="enemy-name" style="font-weight: bold; font-size: 1.1em; margin-bottom: 8px;">${gameState.enemyName}</div>
+            <div class="enemy-ready-status">${readyStatus}</div>
+        </div>
+    `;
+}
+
+// Обновление информации о противнике на экране выбора
+function updateEnemySelectionInfo() {
+    const enemyNameEl = document.getElementById('enemy-name-selection');
+    const enemyReadyEl = document.getElementById('enemy-ready-selection');
+    if (enemyNameEl) {
+        enemyNameEl.textContent = gameState.enemyName || 'Ожидание...';
+    }
+    if (enemyReadyEl) {
+        enemyReadyEl.textContent = gameState.enemyName ? 'Ожидание выбора' : 'Ожидание...';
     }
 }
 
@@ -1631,9 +1698,11 @@ function showBattleVisualization(data) {
     const isPlayer1 = data.gladiator1.name === gameState.gladiator?.name;
     const playerGlad = isPlayer1 ? data.gladiator1 : data.gladiator2;
     const enemyGlad = isPlayer1 ? data.gladiator2 : data.gladiator1;
+    const playerName = gameState.playerName;
+    const enemyName = gameState.enemyName || (isPlayer1 ? data.player2Name : data.player1Name) || '';
     
-    updateBattleGladiator('player-battle-info', playerGlad, false);
-    updateBattleGladiator('enemy-battle-info', enemyGlad, true);
+    updateBattleGladiator('player-battle-info', playerGlad, false, playerName);
+    updateBattleGladiator('enemy-battle-info', enemyGlad, true, enemyName);
 }
 
 function hideBattleVisualization() {
@@ -1703,13 +1772,14 @@ function getHeroImage(gladiator) {
 }
 
 // Обновить визуализацию гладиатора в бою
-function updateBattleGladiator(elementId, gladiator, isEnemy) {
+function updateBattleGladiator(elementId, gladiator, isEnemy, playerName = '') {
     const element = document.getElementById(elementId);
     if (!element) return;
     
     const healthPercent = Math.max(0, Math.min(100, (gladiator.health / gladiator.maxHealth) * 100));
     const manaPercent = Math.max(0, Math.min(100, (gladiator.mana / gladiator.maxMana) * 100));
     const heroImage = getHeroImage(gladiator);
+    const displayName = playerName || gladiator.name;
     
     element.innerHTML = `
         <div class="battle-hero-container">
@@ -1717,14 +1787,15 @@ function updateBattleGladiator(elementId, gladiator, isEnemy) {
                 ${heroImage ? `<img src="${heroImage}" alt="${gladiator.name}" class="battle-hero-image" onerror="this.onerror=null; this.src=''; this.style.display='none'">` : `<div class="battle-hero-placeholder">${gladiator.name.charAt(0)}</div>`}
             </div>
             <div class="battle-hero-info">
+                <div class="battle-player-name">${displayName}</div>
                 <div class="battle-gladiator-name">${gladiator.name}</div>
                 <div class="battle-health-bar" style="position: relative;">
                     <div class="battle-health-fill" style="width: ${healthPercent}%"></div>
-                    <div class="battle-health-text" style="position: absolute; width: 100%; text-align: center; z-index: 10; color: #fff; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); top: 50%; transform: translateY(-50%);">${Math.ceil(gladiator.health)}/${gladiator.maxHealth}</div>
+                    <div class="battle-health-text" style="position: absolute; width: 100%; text-align: center; z-index: 10; color: #fff; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); top: 50%; transform: translateY(-50%); font-size: 0.85em;">${Math.ceil(gladiator.health)}/${gladiator.maxHealth}</div>
                 </div>
                 <div class="battle-mana-bar" style="position: relative;">
                     <div class="battle-mana-fill" style="width: ${manaPercent}%"></div>
-                    <div class="battle-mana-text" style="position: absolute; width: 100%; text-align: center; z-index: 10; color: #fff; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); top: 50%; transform: translateY(-50%);">${Math.ceil(gladiator.mana)}/${gladiator.maxMana}</div>
+                    <div class="battle-mana-text" style="position: absolute; width: 100%; text-align: center; z-index: 10; color: #fff; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); top: 50%; transform: translateY(-50%); font-size: 0.85em;">${Math.ceil(gladiator.mana)}/${gladiator.maxMana}</div>
                 </div>
             </div>
         </div>
