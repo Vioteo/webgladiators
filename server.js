@@ -490,22 +490,74 @@ function simulateBattle(glad1, glad2, roomId, callback) {
         if (turn % Math.floor(attackInterval1 / tickRate) === 0 && glad1.currentHealth > 0) {
             const attackResult = attack(glad1, glad2);
             if (attackResult) {
-                battleLog.push(`${glad1.name} атакует ${glad2.name} и наносит ${attackResult.damage} урона`);
+                const critText = attackResult.isCrit ? ' КРИТИЧЕСКИЙ УДАР!' : '';
+                const blockText = attackResult.blockedDamage > 0 ? ` (Заблокировано ${attackResult.blockedDamage})` : '';
+                battleLog.push(`${glad1.name} атакует ${glad2.name} и наносит ${attackResult.damage} урона${critText}${blockText}`);
+                // Отправляем информацию об уроне для анимации
+                io.to(roomId).emit('battle-damage', {
+                    target: 2,
+                    damage: attackResult.damage,
+                    isCrit: attackResult.isCrit || false,
+                    isEvaded: false,
+                    blockedDamage: attackResult.blockedDamage || 0
+                });
+                
+                // Лечение при атаке
+                if (attackResult.healOnHit > 0) {
+                    io.to(roomId).emit('battle-heal', {
+                        target: 1,
+                        amount: attackResult.healOnHit
+                    });
+                }
             }
         }
         
         if (turn % Math.floor(attackInterval2 / tickRate) === 0 && glad2.currentHealth > 0) {
             const attackResult = attack(glad2, glad1);
             if (attackResult) {
-                battleLog.push(`${glad2.name} атакует ${glad1.name} и наносит ${attackResult.damage} урона`);
+                const critText = attackResult.isCrit ? ' КРИТИЧЕСКИЙ УДАР!' : '';
+                const blockText = attackResult.blockedDamage > 0 ? ` (Заблокировано ${attackResult.blockedDamage})` : '';
+                battleLog.push(`${glad2.name} атакует ${glad1.name} и наносит ${attackResult.damage} урона${critText}${blockText}`);
+                // Отправляем информацию об уроне для анимации
+                io.to(roomId).emit('battle-damage', {
+                    target: 1,
+                    damage: attackResult.damage,
+                    isCrit: attackResult.isCrit || false,
+                    isEvaded: false,
+                    blockedDamage: attackResult.blockedDamage || 0
+                });
+                
+                // Лечение при атаке
+                if (attackResult.healOnHit > 0) {
+                    io.to(roomId).emit('battle-heal', {
+                        target: 2,
+                        amount: attackResult.healOnHit
+                    });
+                }
             }
         }
         
         // Пассивные эффекты
         const passive1 = applyPassiveEffects(glad1, glad2);
         const passive2 = applyPassiveEffects(glad2, glad1);
-        if (passive1) battleLog.push(passive1);
-        if (passive2) battleLog.push(passive2);
+        if (passive1) {
+            battleLog.push(passive1.message || passive1);
+            if (passive1.heal) {
+                io.to(roomId).emit('battle-heal', {
+                    target: 1,
+                    amount: passive1.heal
+                });
+            }
+        }
+        if (passive2) {
+            battleLog.push(passive2.message || passive2);
+            if (passive2.heal) {
+                io.to(roomId).emit('battle-heal', {
+                    target: 2,
+                    amount: passive2.heal
+                });
+            }
+        }
         
         // Проверка активных способностей
         const ability1 = checkAndUseActiveAbility(glad1, glad2);
@@ -593,19 +645,52 @@ function simulateBattle(glad1, glad2, roomId, callback) {
 
 // Атака
 function attack(attacker, defender) {
-    const damage = calculateDamage(attacker, defender);
+    // Проверка уклонения
+    if (defender.effects && defender.effects.evasionChance) {
+        const evasionRoll = Math.random() * 100;
+        if (evasionRoll < defender.effects.evasionChance) {
+            return { 
+                damage: 0, 
+                manaGained: 0, 
+                isEvaded: true,
+                isCrit: false,
+                healOnHit: 0
+            };
+        }
+    }
+    
+    const damageResult = calculateDamage(attacker, defender);
+    const damage = damageResult.damage;
+    const isCrit = damageResult.isCrit || false;
+    const blockedDamage = damageResult.blockedDamage || 0;
+    
     defender.currentHealth = Math.max(0, defender.currentHealth - damage);
+    
+    // Лечение при атаке (эффект карточек)
+    let healOnHit = 0;
+    if (attacker.effects && attacker.effects.healOnHit) {
+        healOnHit = attacker.effects.healOnHit;
+        attacker.currentHealth = Math.min(attacker.maxHealth, attacker.currentHealth + healOnHit);
+    }
     
     // Восстановление маны при атаке
     const oldMana = attacker.mana || 0;
     attacker.mana = Math.min(attacker.maxMana || 200, oldMana + 5);
     
-    return { damage, manaGained: attacker.mana - oldMana };
+    return { 
+        damage: Math.floor(damage), 
+        manaGained: attacker.mana - oldMana,
+        isCrit: isCrit,
+        isEvaded: false,
+        healOnHit: healOnHit,
+        blockedDamage: blockedDamage
+    };
 }
 
 // Расчет урона
 function calculateDamage(attacker, defender) {
     let damage = attacker.damage || 50;
+    let isCrit = false;
     
     // Пассивные способности
     if (attacker.passive) {
@@ -618,6 +703,7 @@ function calculateDamage(attacker, defender) {
         if (attacker.effects.critChance && Math.random() < (attacker.effects.critChance / 100)) {
             const critMultiplier = 2 + ((attacker.effects.critDamage || 0) / 100);
             damage *= critMultiplier;
+            isCrit = true;
         }
         
         // Урон мороза
@@ -648,11 +734,14 @@ function calculateDamage(attacker, defender) {
     }
     
     // Блок от щита
+    let blockedDamage = 0;
     if (defender.effects && defender.effects.shieldBlock) {
+        const originalDamage = damage;
         damage = Math.max(0, damage - defender.effects.shieldBlock);
+        blockedDamage = originalDamage - damage;
     }
     
-    return Math.max(1, Math.floor(damage));
+    return { damage: Math.max(1, Math.floor(damage)), isCrit, blockedDamage: Math.floor(blockedDamage) };
 }
 
 // Применение пассивной способности

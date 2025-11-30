@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256" height="256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradCrystal" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#88ccff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4488cc;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" fill="url(#gradCrystal)" rx="15"/>
+  <!-- Голова -->
+  <circle cx="128" cy="85" r="30" fill="#ccddff" stroke="#fff" stroke-width="2"/>
+  <!-- Волосы -->
+  <path d="M 98 65 Q 128 55 158 65 Q 165 75 158 85 Q 128 75 98 85 Q 91 75 98 65" fill="#ffffff" opacity="0.9"/>
+  <!-- Посох -->
+  <rect x="175" y="40" width="8" height="140" fill="#ffffff" rx="2"/>
+  <circle cx="179" cy="45" r="12" fill="#88ddff" stroke="#fff" stroke-width="2"/>
+  <!-- Кристалл на посохе -->
+  <polygon points="179,30 187,40 179,50 171,40" fill="#ffffff"/>
+  <!-- Тело -->
+  <rect x="108" y="115" width="40" height="70" fill="#6699ff" rx="5"/>
+  <!-- Плащ -->
+  <path d="M 98 115 Q 128 125 158 115 L 158 185 Q 128 180 98 185 Z" fill="#4488dd" opacity="0.8"/>
+  <text x="128" y="240" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#fff" text-anchor="middle">CM</text>
+</svg>

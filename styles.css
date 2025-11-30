@@ -1009,6 +1009,142 @@ body {
     border-width: 3px;
 }
 
+/* Контейнер для цифр урона */
+.damage-numbers-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 100;
+    overflow: visible;
+}
+
+/* Цифры урона/лечения */
+.damage-number {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.2em;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    animation: damageFloat 2s ease-out forwards;
+    z-index: 200;
+    pointer-events: none;
+}
+
+.damage-number.crit {
+    font-size: 1.8em;
+    animation: damageFloatCrit 2s ease-out forwards;
+}
+
+.damage-number.evaded {
+    font-size: 1.5em;
+    animation: damageFloatEvaded 2s ease-out forwards;
+}
+
+.damage-number.blocked {
+    font-size: 1.3em;
+    animation: damageFloatBlocked 2s ease-out forwards;
+}
+
+.damage-number.heal {
+    animation: healFloat 2s ease-out forwards;
+}
+
+@keyframes damageFloat {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) translateY(-80px);
+    }
+}
+
+@keyframes damageFloatCrit {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) translateY(0) scale(1);
+    }
+    50% {
+        transform: translate(-50%, -50%) translateY(-20px) scale(1.2);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) translateY(-100px) scale(0.8);
+    }
+}
+
+@keyframes damageFloatEvaded {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) translateY(0) rotate(0deg);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) translateY(-80px) rotate(15deg);
+    }
+}
+
+@keyframes damageFloatBlocked {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) translateY(-80px);
+    }
+}
+
+@keyframes healFloat {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) translateY(-80px);
+    }
+}
+
+/* Журнал боя */
+.battle-log-container {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    max-height: 200px;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 10px;
+    padding: 15px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.battle-log-container h4 {
+    margin: 0 0 10px 0;
+    color: #fff;
+    font-size: 1.1em;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    padding-bottom: 5px;
+}
+
+.battle-log {
+    max-height: 150px;
+    overflow-y: auto;
+    font-size: 0.9em;
+}
+
+.battle-log-entry {
+    padding: 3px 0;
+    line-height: 1.4;
+}
+
 .battle-gladiator {
     margin-bottom: 20px;
 }

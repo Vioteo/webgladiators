@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256" height="256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradSven" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#aa0000;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" fill="url(#gradSven)" rx="15"/>
+  <!-- Голова -->
+  <circle cx="128" cy="90" r="35" fill="#ffaaaa" stroke="#fff" stroke-width="2"/>
+  <!-- Меч -->
+  <rect x="160" y="50" width="15" height="120" fill="#cccccc" rx="3"/>
+  <rect x="158" y="40" width="19" height="20" fill="#ffdd44" rx="2"/>
+  <!-- Тело -->
+  <rect x="108" y="125" width="40" height="70" fill="#cc2222" rx="5"/>
+  <!-- Плечи -->
+  <ellipse cx="98" cy="130" rx="15" ry="25" fill="#aa1111"/>
+  <ellipse cx="158" cy="130" rx="15" ry="25" fill="#aa1111"/>
+  <!-- Ноги -->
+  <rect x="115" y="195" width="15" height="40" fill="#881111" rx="3"/>
+  <rect x="126" y="195" width="15" height="40" fill="#881111" rx="3"/>
+  <text x="128" y="240" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#fff" text-anchor="middle">SVEN</text>
+</svg>

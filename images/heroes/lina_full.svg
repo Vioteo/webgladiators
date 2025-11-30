@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256" height="256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradLina" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffff44;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ffaa00;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" fill="url(#gradLina)" rx="15"/>
+  <!-- Голова -->
+  <circle cx="128" cy="85" r="32" fill="#ffdd88" stroke="#fff" stroke-width="2"/>
+  <!-- Волосы -->
+  <path d="M 96 60 Q 128 50 160 60 Q 170 75 160 90 Q 128 85 96 90 Q 86 75 96 60" fill="#ff0000" opacity="0.9"/>
+  <!-- Огонь -->
+  <path d="M 50 60 Q 60 50 70 60 Q 75 70 70 80 Q 60 75 50 70 Q 55 65 50 60" fill="#ff4400"/>
+  <path d="M 186 60 Q 196 50 206 60 Q 211 70 206 80 Q 196 75 186 70 Q 191 65 186 60" fill="#ff4400"/>
+  <!-- Посох -->
+  <rect x="170" y="50" width="6" height="120" fill="#8B4513" rx="2"/>
+  <!-- Пламя на посохе -->
+  <path d="M 173 45 Q 178 35 183 45 Q 180 50 173 50" fill="#ff6600"/>
+  <!-- Тело -->
+  <rect x="108" y="117" width="40" height="70" fill="#ffaa00" rx="5"/>
+  <!-- Платье -->
+  <path d="M 108 187 Q 128 200 148 187 L 148 187" fill="#ff8800" stroke="#ff6600" stroke-width="2"/>
+  <text x="128" y="240" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#fff" text-anchor="middle">LINA</text>
+</svg>

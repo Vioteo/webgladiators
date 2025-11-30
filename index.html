@@ -92,12 +92,20 @@
                         <div id="battle-visualization" class="battle-visualization hidden">
                             <div id="battle-timer" class="battle-timer">0:00</div>
                             <div class="battle-arena">
-                                <div id="player-battle-info" class="battle-gladiator-info"></div>
-                                <div id="enemy-battle-info" class="battle-gladiator-info enemy"></div>
+                                <div id="player-battle-info" class="battle-gladiator-info">
+                                    <div class="damage-numbers-container"></div>
+                                </div>
+                                <div id="enemy-battle-info" class="battle-gladiator-info enemy">
+                                    <div class="damage-numbers-container"></div>
+                                </div>
                             </div>
                             <div id="battle-effects" class="battle-effects-container">
                                 <div id="player-effects" class="effects-display"></div>
                                 <div id="enemy-effects" class="effects-display"></div>
+                            </div>
+                            <div id="battle-log-container" class="battle-log-container">
+                                <h4>Журнал боя</h4>
+                                <div id="battle-log" class="battle-log"></div>
                             </div>
                         </div>
                     </div>

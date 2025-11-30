@@ -17,16 +17,16 @@ const ALL_STYLES = [
     { id: 'heal', name: 'Лечение', color: '#44ff88' }
 ];
 
-// URL изображений героев (Dota 2) - используем прямые ссылки
+// Пути к локальным изображениям героев (Dota 2) - используем SVG
 const HERO_IMAGES = {
-    'axe': 'https://api.opendota.com/apps/dota2/images/heroes/axe_full.png',
-    'sven': 'https://api.opendota.com/apps/dota2/images/heroes/sven_full.png',
-    'drow': 'https://api.opendota.com/apps/dota2/images/heroes/drow_ranger_full.png',
-    'pudge': 'https://api.opendota.com/apps/dota2/images/heroes/pudge_full.png',
-    'riki': 'https://api.opendota.com/apps/dota2/images/heroes/riki_full.png',
-    'crystal': 'https://api.opendota.com/apps/dota2/images/heroes/crystal_maiden_full.png',
-    'juggernaut': 'https://api.opendota.com/apps/dota2/images/heroes/juggernaut_full.png',
-    'lina': 'https://api.opendota.com/apps/dota2/images/heroes/lina_full.png'
+    'axe': 'images/heroes/axe_full.svg',
+    'sven': 'images/heroes/sven_full.svg',
+    'drow': 'images/heroes/drow_ranger_full.svg',
+    'pudge': 'images/heroes/pudge_full.svg',
+    'riki': 'images/heroes/riki_full.svg',
+    'crystal': 'images/heroes/crystal_maiden_full.svg',
+    'juggernaut': 'images/heroes/juggernaut_full.svg',
+    'lina': 'images/heroes/lina_full.svg'
 };
 
 // Герои с пассивными и активными способностями
@@ -225,11 +225,11 @@ const CARDS = {
         { id: 'fury_master', name: 'Мастер ярости', rarity: 'legendary', effect: { attackSpeed: 30, furyDamage: 40 } }
     ],
     tank: [
-        { id: 'tank_health_1', name: 'Здоровье +100', rarity: 'common', effect: { health: 100 } },
+        { id: 'tank_health_1', name: 'Здоровье +1000', rarity: 'common', effect: { health: 1000 } },
         { id: 'tank_armor_1', name: 'Броня +2', rarity: 'uncommon', effect: { armor: 2 } },
-        { id: 'tank_regen_1', name: 'Реген +5/с', rarity: 'rare', effect: { regen: 5 } },
+        { id: 'tank_regen_1', name: 'Реген +50/с', rarity: 'rare', effect: { regen: 50 } },
         { id: 'tank_thorns', name: 'Шипы', rarity: 'epic', effect: { thorns: true } },
-        { id: 'tank_master', name: 'Мастер танка', rarity: 'legendary', effect: { health: 300, armor: 5 } }
+        { id: 'tank_master', name: 'Мастер танка', rarity: 'legendary', effect: { health: 3000, armor: 5 } }
     ],
     evasion: [
         { id: 'evasion_chance_1', name: 'Шанс уклонения +10%', rarity: 'common', effect: { evasionChance: 10 } },
@@ -253,11 +253,11 @@ const CARDS = {
         { id: 'ult_master', name: 'Мастер ульты', rarity: 'legendary', effect: { ultDamage: 150, cooldown: -50 } }
     ],
     heal: [
-        { id: 'heal_regen_1', name: 'Регенерация +5', rarity: 'common', effect: { regen: 5 } },
-        { id: 'heal_amount_1', name: 'Лечение +30', rarity: 'uncommon', effect: { healAmount: 30 } },
-        { id: 'heal_on_hit_1', name: 'Лечение при атаке +10', rarity: 'rare', effect: { healOnHit: 10 } },
-        { id: 'heal_shield', name: 'Щит восстановления', rarity: 'epic', effect: { healShield: true } },
-        { id: 'heal_master', name: 'Мастер лечения', rarity: 'legendary', effect: { regen: 15, healAmount: 50 } }
+        { id: 'heal_regen_1', name: 'Регенерация +50', rarity: 'common', effect: { regen: 50 } },
+        { id: 'heal_amount_1', name: 'Лечение +300', rarity: 'uncommon', effect: { healAmount: 300 } },
+        { id: 'heal_on_hit_1', name: 'Лечение при атаке +100', rarity: 'rare', effect: { healOnHit: 100 } },
+        { id: 'heal_shield', name: 'Щит восстановления', rarity: 'epic', effect: { healShield: true, shieldAmount: 1000 } },
+        { id: 'heal_master', name: 'Мастер лечения', rarity: 'legendary', effect: { regen: 150, healAmount: 500 } }
     ]
 };
 
@@ -319,7 +319,30 @@ let gameState = {
 // Инициализация
 document.addEventListener('DOMContentLoaded', () => {
     setupConnectionScreen();
+    setupKeyboardControls();
 });
+
+// Настройка управления с клавиатуры
+function setupKeyboardControls() {
+    document.addEventListener('keydown', (e) => {
+        // Только на игровом экране
+        if (gameState.currentScreen !== 'game') return;
+        
+        // Покупка карточек на 1-5
+        if (e.key >= '1' && e.key <= '5') {
+            const index = parseInt(e.key) - 1;
+            if (gameState.shop && gameState.shop[index]) {
+                buyCard(index);
+            }
+        }
+        
+        // Рерол магазина на R
+        if (e.key === 'r' || e.key === 'R') {
+            e.preventDefault();
+            refreshShop();
+        }
+    });
+}
 
 // Настройка экрана подключения
 function setupConnectionScreen() {
@@ -630,6 +653,12 @@ function setupSocketListeners() {
         addLog('=== БОЙ НАЧАЛСЯ ===', 'info');
         document.getElementById('battle-status').textContent = 'Бой идет...';
         
+        // Очищаем журнал боя
+        const battleLogContainer = document.getElementById('battle-log');
+        if (battleLogContainer) {
+            battleLogContainer.innerHTML = '';
+        }
+        
         // Показываем визуализацию боя
         showBattleVisualization(data);
         
@@ -643,6 +672,20 @@ function setupSocketListeners() {
     // Обработка обновлений боя (эффекты, здоровье, мана)
     gameState.socket.on('battle-update', (update) => {
         updateBattleVisualization(update);
+    });
+    
+    // Обработка урона для анимации
+    gameState.socket.on('battle-damage', (data) => {
+        const isPlayer1 = data.target === 1;
+        const targetElementId = isPlayer1 ? 'player-battle-info' : 'enemy-battle-info';
+        showDamageNumber(targetElementId, data.damage, data.isCrit, data.isEvaded, data.blockedDamage || 0);
+    });
+    
+    // Обработка лечения для анимации
+    gameState.socket.on('battle-heal', (data) => {
+        const isPlayer1 = data.target === 1;
+        const targetElementId = isPlayer1 ? 'player-battle-info' : 'enemy-battle-info';
+        showHealNumber(targetElementId, data.amount);
     });
     
     gameState.socket.on('battle-result', (result) => {
@@ -995,13 +1038,38 @@ function generateShop() {
         // Получаем карты этого стиля с выбранной редкостью
         const cardsWithRarity = styleCards.filter(card => card.rarity === selectedRarity);
         
-        if (cardsWithRarity.length > 0) {
+        // Фильтруем карточки максимального уровня
+        const availableCards = cardsWithRarity.filter(card => {
+            const existingCard = gameState.cards.find(c => c.id === card.id);
+            if (!existingCard) return true; // Новая карточка доступна
+            
+            const rarityInfo = RARITY[card.rarity];
+            const maxLevel = rarityInfo.maxLevel || 5;
+            return existingCard.level < maxLevel; // Доступна только если не максимального уровня
+        });
+        
+        if (availableCards.length > 0) {
+            const randomCard = availableCards[Math.floor(Math.random() * availableCards.length)];
+            gameState.shop.push({ ...randomCard, style });
+        } else if (cardsWithRarity.length > 0) {
+            // Если все карточки максимального уровня, берем любую (но она не будет доступна для покупки)
             const randomCard = cardsWithRarity[Math.floor(Math.random() * cardsWithRarity.length)];
             gameState.shop.push({ ...randomCard, style });
         } else {
             // Fallback на common если нет карт нужной редкости
             const commonCards = styleCards.filter(card => card.rarity === 'common');
-            if (commonCards.length > 0) {
+            const availableCommon = commonCards.filter(card => {
+                const existingCard = gameState.cards.find(c => c.id === card.id);
+                if (!existingCard) return true;
+                const rarityInfo = RARITY[card.rarity];
+                const maxLevel = rarityInfo.maxLevel || 5;
+                return existingCard.level < maxLevel;
+            });
+            
+            if (availableCommon.length > 0) {
+                const randomCard = availableCommon[Math.floor(Math.random() * availableCommon.length)];
+                gameState.shop.push({ ...randomCard, style });
+            } else if (commonCards.length > 0) {
                 const randomCard = commonCards[Math.floor(Math.random() * commonCards.length)];
                 gameState.shop.push({ ...randomCard, style });
             }
@@ -1108,7 +1176,15 @@ function renderShop() {
             `;
         }
         
-        if (gameState.gold < rarityInfo.cost) {
+        // Проверяем доступность карточки
+        const existingCard = gameState.cards.find(c => c.id === card.id);
+        const isMaxLevel = existingCard && existingCard.level >= (rarityInfo.maxLevel || 5);
+        
+        if (isMaxLevel) {
+            cardElement.classList.add('max-level');
+            cardElement.style.opacity = '0.5';
+            cardElement.style.cursor = 'not-allowed';
+        } else if (gameState.gold < rarityInfo.cost) {
             cardElement.classList.add('unaffordable');
         } else {
             cardElement.addEventListener('click', () => buyCard(index));
@@ -1686,6 +1762,106 @@ function updateBattleTimer(timeInSeconds) {
         const minutes = Math.floor(timeInSeconds / 60);
         const seconds = Math.floor(timeInSeconds % 60);
         timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+}
+
+// Показать число урона/блока
+function showDamageNumber(elementId, damage, isCrit, isEvaded, blockedDamage) {
+    const container = document.querySelector(`#${elementId} .damage-numbers-container`);
+    if (!container) return;
+    
+    const numberDiv = document.createElement('div');
+    numberDiv.className = 'damage-number';
+    
+    if (isEvaded) {
+        numberDiv.className += ' evaded';
+        numberDiv.textContent = 'УКЛОНЕНИЕ';
+        numberDiv.style.color = '#ffff00';
+    } else if (blockedDamage > 0) {
+        numberDiv.className += ' blocked';
+        numberDiv.innerHTML = `-${damage}<br><span style="font-size: 0.7em;">БЛОК ${blockedDamage}</span>`;
+        numberDiv.style.color = '#4488ff';
+    } else if (isCrit) {
+        numberDiv.className += ' crit';
+        numberDiv.textContent = `-${damage} КРИТ!`;
+        numberDiv.style.color = '#ff4444';
+        numberDiv.style.fontSize = '1.5em';
+    } else {
+        numberDiv.textContent = `-${damage}`;
+        numberDiv.style.color = '#ff8888';
+    }
+    
+    container.appendChild(numberDiv);
+    
+    // Анимация
+    setTimeout(() => {
+        numberDiv.style.transition = 'all 0.3s ease-out';
+        numberDiv.style.opacity = '0';
+        numberDiv.style.transform = 'translateY(-50px)';
+        setTimeout(() => {
+            if (numberDiv.parentNode) {
+                numberDiv.parentNode.removeChild(numberDiv);
+            }
+        }, 300);
+    }, 2000);
+}
+
+// Показать число лечения
+function showHealNumber(elementId, amount) {
+    const container = document.querySelector(`#${elementId} .damage-numbers-container`);
+    if (!container) return;
+    
+    const numberDiv = document.createElement('div');
+    numberDiv.className = 'damage-number heal';
+    numberDiv.textContent = `+${amount}`;
+    numberDiv.style.color = '#44ff44';
+    
+    container.appendChild(numberDiv);
+    
+    // Анимация
+    setTimeout(() => {
+        numberDiv.style.transition = 'all 0.3s ease-out';
+        numberDiv.style.opacity = '0';
+        numberDiv.style.transform = 'translateY(-50px)';
+        setTimeout(() => {
+            if (numberDiv.parentNode) {
+                numberDiv.parentNode.removeChild(numberDiv);
+            }
+        }, 300);
+    }, 2000);
+}
+
+// Добавить запись в журнал боя
+function addToBattleLog(data) {
+    const battleLogContainer = document.getElementById('battle-log');
+    if (!battleLogContainer) return;
+    
+    const logEntry = document.createElement('div');
+    logEntry.className = 'battle-log-entry';
+    
+    if (data.isEvaded) {
+        logEntry.textContent = 'Уклонение!';
+        logEntry.style.color = '#ffff00';
+    } else if (data.blockedDamage > 0) {
+        logEntry.textContent = `Урон: ${data.damage} (Заблокировано: ${data.blockedDamage})`;
+        logEntry.style.color = '#4488ff';
+    } else if (data.isCrit) {
+        logEntry.textContent = `КРИТИЧЕСКИЙ УДАР: ${data.damage}!`;
+        logEntry.style.color = '#ff4444';
+        logEntry.style.fontWeight = 'bold';
+    } else {
+        logEntry.textContent = `Урон: ${data.damage}`;
+        logEntry.style.color = '#ff8888';
+    }
+    
+    battleLogContainer.appendChild(logEntry);
+    
+    // Автопрокрутка вниз
+    battleLogContainer.scrollTop = battleLogContainer.scrollHeight;
+    
+    // Ограничиваем количество записей
+    while (battleLogContainer.children.length > 50) {
+        battleLogContainer.removeChild(battleLogContainer.firstChild);
     }
 }
 
