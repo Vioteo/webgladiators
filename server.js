@@ -360,40 +360,8 @@ function startBattle(room) {
         }
     });
 
-    const battleLog = [];
-    const battleUpdates = [];
-    let battleUpdateInterval = null;
-    
-    // Отправляем обновления боя в реальном времени
-    battleUpdateInterval = setInterval(() => {
-        if (room.gameState !== 'playing') {
-            if (battleUpdateInterval) clearInterval(battleUpdateInterval);
-            return;
-        }
-        
-        io.to(room.id).emit('battle-update', {
-            gladiator1: {
-                name: gladiator1.name,
-                health: gladiator1.currentHealth,
-                maxHealth: gladiator1.maxHealth,
-                mana: gladiator1.mana,
-                maxMana: gladiator1.maxMana || 200,
-                effects: getEffectsDisplay(gladiator1)
-            },
-            gladiator2: {
-                name: gladiator2.name,
-                health: gladiator2.currentHealth,
-                maxHealth: gladiator2.maxHealth,
-                mana: gladiator2.mana,
-                maxMana: gladiator2.maxMana || 200,
-                effects: getEffectsDisplay(gladiator2)
-            }
-        });
-    }, 200); // Обновление каждые 200ms
-    
-    // Симуляция боя
-    simulateBattle(gladiator1, gladiator2, (winner, log, updates) => {
-        if (battleUpdateInterval) clearInterval(battleUpdateInterval);
+    // Симуляция боя (обновления отправляются внутри функции)
+    simulateBattle(gladiator1, gladiator2, room.id, (winner, log, updates) => {
         
         let winnerPlayer, loserPlayer;
         
@@ -480,6 +448,8 @@ function startBattle(room) {
                 io.to(room.id).emit('round-end', {
                     player1Gold: player1.gold,
                     player2Gold: player2.gold,
+                    player1Id: player1.id,
+                    player2Id: player2.id,
                     availableStyles: styles.available,
                     blockedStyles: styles.blocked
                 });
@@ -489,15 +459,20 @@ function startBattle(room) {
 }
 
 // Симуляция боя 1 на 1
-function simulateBattle(glad1, glad2, callback) {
+function simulateBattle(glad1, glad2, roomId, callback) {
     let turn = 0;
     const maxTurns = 500;
-    const tickRate = 100; // 100ms между тиками
+    const tickRate = 300; // 300ms между тиками (было 100ms - теперь бои медленнее)
     const battleLog = [];
     const battleUpdates = [];
-    let lastUpdateTime = 0;
+    let battleEnded = false;
 
     const battleInterval = setInterval(() => {
+        if (battleEnded) {
+            clearInterval(battleInterval);
+            return;
+        }
+        
         turn++;
         
         // Восстановление маны
@@ -538,42 +513,74 @@ function simulateBattle(glad1, glad2, callback) {
         if (ability1) battleLog.push(ability1);
         if (ability2) battleLog.push(ability2);
         
-        // Отправляем обновления состояния каждые 500ms для визуализации
-        if (turn % 5 === 0) {
-            battleUpdates.push({
-                time: turn * tickRate / 1000,
+        // Отправляем обновления состояния каждые 600ms для визуализации
+        if (turn % 2 === 0) { // Every 2 ticks (600ms при tickRate 300ms)
+            const update = {
                 gladiator1: {
-                    health: glad1.currentHealth,
+                    name: glad1.name,
+                    health: Math.max(0, glad1.currentHealth),
                     maxHealth: glad1.maxHealth,
                     mana: glad1.mana,
                     maxMana: glad1.maxMana || 200,
                     effects: getEffectsDisplay(glad1)
                 },
                 gladiator2: {
-                    health: glad2.currentHealth,
+                    name: glad2.name,
+                    health: Math.max(0, glad2.currentHealth),
                     maxHealth: glad2.maxHealth,
                     mana: glad2.mana,
                     maxMana: glad2.maxMana || 200,
                     effects: getEffectsDisplay(glad2)
                 }
-            });
+            };
+            
+            battleUpdates.push(update);
+            
+            // Отправляем обновление на клиент в реальном времени
+            io.to(roomId).emit('battle-update', update);
         }
 
-        // Проверка окончания боя
+        // Проверка окончания боя - только когда HP действительно доходит до 0
         if (glad1.currentHealth <= 0 || glad2.currentHealth <= 0 || turn >= maxTurns) {
+            battleEnded = true;
             clearInterval(battleInterval);
             
-            let winner;
-            if (glad1.currentHealth > 0 && glad2.currentHealth <= 0) {
-                winner = 1;
-            } else if (glad2.currentHealth > 0 && glad1.currentHealth <= 0) {
-                winner = 2;
-            } else {
-                // Ничья - побеждает тот, у кого больше здоровья
-                winner = glad1.currentHealth > glad2.currentHealth ? 1 : 2;
-            }
+            // Отправляем финальное обновление с HP = 0
+            const finalUpdate = {
+                gladiator1: {
+                    name: glad1.name,
+                    health: Math.max(0, glad1.currentHealth),
+                    maxHealth: glad1.maxHealth,
+                    mana: glad1.mana,
+                    maxMana: glad1.maxMana || 200,
+                    effects: getEffectsDisplay(glad1)
+                },
+                gladiator2: {
+                    name: glad2.name,
+                    health: Math.max(0, glad2.currentHealth),
+                    maxHealth: glad2.maxHealth,
+                    mana: glad2.mana,
+                    maxMana: glad2.maxMana || 200,
+                    effects: getEffectsDisplay(glad2)
+                }
+            };
             
-            callback(winner, battleLog.slice(-50), battleUpdates); // Отправляем последние 50 записей лога
+            io.to(roomId).emit('battle-update', finalUpdate);
+            
+            // Ждем 1.5 секунды для завершения визуализации, затем отправляем результат
+            setTimeout(() => {
+                let winner;
+                if (glad1.currentHealth > 0 && glad2.currentHealth <= 0) {
+                    winner = 1;
+                } else if (glad2.currentHealth > 0 && glad1.currentHealth <= 0) {
+                    winner = 2;
+                } else {
+                    // Ничья - побеждает тот, у кого больше здоровья
+                    winner = glad1.currentHealth > glad2.currentHealth ? 1 : 2;
+                }
+                
+                callback(winner, battleLog.slice(-50), battleUpdates);
+            }, 1500); // Ждем 1.5 секунды для завершения визуализации
         }
     }, tickRate);
 }

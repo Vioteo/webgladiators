@@ -571,17 +571,28 @@ function setupSocketListeners() {
     });
     
     gameState.socket.on('styles-selected', (data) => {
+        // Обновляем стили для магазина
         gameState.availableStyles = data.styles;
         gameState.blockedStyles = data.blockedStyles || [];
-        gameState.gold = STARTING_GOLD;
-        gameState.selectedHero = null;
-        gameState.gladiator = null;
-        gameState.cards = [];
         
-        showScreen('hero-selection');
-        renderHeroSelection();
-        addLog(`Доступные стили: ${data.styles.map(s => ALL_STYLES.find(st => st.id === s)?.name || s).join(', ')}`, 'info');
-        addLog(`Заблокированные: ${data.blockedStyles.map(s => ALL_STYLES.find(st => st.id === s)?.name || s).join(', ')}`, 'info');
+        // Если герой еще не выбран - показываем выбор
+        if (!gameState.selectedHero) {
+            gameState.gold = STARTING_GOLD;
+            gameState.selectedHero = null;
+            gameState.gladiator = null;
+            gameState.cards = [];
+            
+            showScreen('hero-selection');
+            renderHeroSelection();
+            addLog(`Доступные стили: ${data.styles.map(s => ALL_STYLES.find(st => st.id === s)?.name || s).join(', ')}`, 'info');
+            addLog(`Заблокированные: ${data.blockedStyles.map(s => ALL_STYLES.find(st => st.id === s)?.name || s).join(', ')}`, 'info');
+        } else {
+            // Если герой уже выбран - просто обновляем магазин
+            generateShop();
+            renderGladiator();
+            updateUI();
+            addLog(`Новые доступные стили: ${data.styles.map(s => ALL_STYLES.find(st => st.id === s)?.name || s).join(', ')}`, 'info');
+        }
     });
     
     gameState.socket.on('hero-selected', (data) => {
@@ -627,41 +638,114 @@ function setupSocketListeners() {
     });
     
     gameState.socket.on('battle-result', (result) => {
+        // Скрываем визуализацию боя
+        const battleViz = document.getElementById('battle-visualization');
+        if (battleViz) {
+            setTimeout(() => {
+                battleViz.classList.add('hidden');
+            }, 500);
+        }
+        
         const isWinner = result.winner === gameState.socket.id;
         gameState.lives = isWinner ? result.winnerLives : result.loserLives;
         
-        showBattleResult(isWinner, result);
-        
-        if (result.gameOver) {
-            addLog(isWinner ? '🎉 ПОБЕДА! ИГРА ОКОНЧЕНА!' : '💀 ПОРАЖЕНИЕ! ИГРА ОКОНЧЕНА!', 'info');
-        } else {
-            gameState.round++;
-            gameState.gold += isWinner ? 5 : 3;
-            addLog(isWinner ? 
-                `🎉 Победа в раунде! Жизней: ${gameState.lives}, Золота: ${gameState.gold}` : 
-                `💀 Поражение в раунде. Жизней: ${gameState.lives}, Золота: ${gameState.gold}`, 'info');
+        // Показываем результат только после завершения визуализации
+        setTimeout(() => {
+            showBattleResult(isWinner, result);
             
-            // Генерация нового магазина
+            if (result.gameOver) {
+                addLog(isWinner ? '🎉 ПОБЕДА! ИГРА ОКОНЧЕНА!' : '💀 ПОРАЖЕНИЕ! ИГРА ОКОНЧЕНА!', 'info');
+            } else {
+                gameState.round++;
+                
+                // Золото уже обновлено на сервере с учетом бонуса
+                if (result.player1Gold !== undefined || result.player2Gold !== undefined) {
+                    const isPlayer1 = result.player1Id === gameState.socket.id;
+                    gameState.gold = isPlayer1 ? result.player1Gold : result.player2Gold;
+                }
+                
+                addLog(isWinner ? 
+                    `🎉 Победа в раунде! Жизней: ${gameState.lives}, Золота: ${gameState.gold}` : 
+                    `💀 Поражение в раунде. Жизней: ${gameState.lives}, Золота: ${gameState.gold}`, 'info');
+                
+                // Показываем лог боя если есть
+                if (result.battleLog && result.battleLog.length > 0) {
+                    addLog('--- Лог боя ---', 'info');
+                    result.battleLog.slice(-15).forEach(log => {
+                        if (log.includes('наносит')) {
+                            addLog(log, 'damage');
+                        } else if (log.includes('использует') || log.includes('Наносит')) {
+                            addLog(log, 'info');
+                        } else {
+                            addLog(log, 'info');
+                        }
+                    });
+                }
+                
+                // Генерация нового магазина будет после round-end
+            }
+            
+            updateUI();
+        }, 800);
+    });
+    
+    gameState.socket.on('round-end', (data) => {
+        gameState.isReady = false;
+        
+        // НЕ сбрасываем героя и карточки - они сохраняются между раундами!
+        // gameState.selectedHero = null; // УБРАНО
+        // gameState.gladiator = null; // УБРАНО
+        // gameState.cards = []; // УБРАНО
+        
+        // Обновляем золото (герой и карточки сохраняются)
+        if (data.player1Gold !== undefined || data.player2Gold !== undefined) {
+            const isPlayer1 = gameState.socket.id === (data.player1Id || '');
+            gameState.gold = isPlayer1 ? data.player1Gold : data.player2Gold;
+        }
+        
+        // Обновляем доступные стили для магазина
+        if (data.availableStyles) {
+            gameState.availableStyles = data.availableStyles;
+            gameState.blockedStyles = data.blockedStyles || [];
             generateShop();
         }
         
-        updateUI();
-    });
-    
-    gameState.socket.on('round-end', () => {
-        gameState.isReady = false;
-        gameState.selectedHero = null;
-        gameState.gladiator = null;
-        gameState.cards = [];
-        gameState.gold = STARTING_GOLD;
+        // Восстанавливаем здоровье гладиатора после боя
+        if (gameState.gladiator) {
+            gameState.gladiator.currentHealth = gameState.gladiator.maxHealth;
+        }
+        
+        // Скрываем визуализацию боя
+        const battleViz = document.getElementById('battle-visualization');
+        const enemyBattleViz = document.getElementById('enemy-battle-visualization');
+        if (battleViz) battleViz.classList.add('hidden');
+        if (enemyBattleViz) enemyBattleViz.classList.add('hidden');
+        
+        // Показываем обычное отображение
+        const normalDisplay = document.getElementById('character-portrait');
+        if (normalDisplay) {
+            const img = document.getElementById('character-image');
+            if (img && gameState.gladiator) {
+                const heroImage = getHeroImage(gameState.gladiator);
+                if (heroImage) img.src = heroImage;
+            }
+        }
+        
         document.getElementById('ready-btn').classList.remove('hidden');
         document.getElementById('not-ready-btn').classList.add('hidden');
         document.getElementById('battle-status').textContent = 'Подготовка к следующему раунду';
         
-        // Возвращаемся к выбору героя
-        showScreen('hero-selection');
-        renderHeroSelection();
-        addLog('Раунд окончен. Выберите нового героя.', 'info');
+        // Остаемся на игровом экране, не возвращаемся к выбору героя
+        if (gameState.currentScreen !== 'game') {
+            showScreen('game');
+        }
+        
+        // Обновляем отображение
+        renderGladiator();
+        renderShop();
+        updateUI();
+        
+        addLog('Раунд окончен. Покупайте карточки и готовьтесь к следующему бою!', 'info');
     });
     
     gameState.socket.on('game-over', (data) => {
@@ -958,7 +1042,7 @@ function renderRarityChances(styleProgress) {
     stylesContainer.innerHTML = infoHTML;
 }
 
-// Рендеринг магазина
+// Рендеринг магазина (новая версия с пиксель-арт)
 function renderShop() {
     const shopContainer = document.getElementById('shop');
     if (!shopContainer) return;
@@ -967,20 +1051,42 @@ function renderShop() {
     
     gameState.shop.forEach((card, index) => {
         const cardElement = document.createElement('div');
-        cardElement.className = 'shop-card';
+        
+        // Определяем класс в зависимости от layout
+        const isNewLayout = shopContainer.classList.contains('shop-grid-pixel') || 
+                           document.querySelector('.main-content.new-layout');
+        
+        if (isNewLayout) {
+            cardElement.className = 'shop-card-pixel';
+        } else {
+            cardElement.className = 'shop-card';
+        }
         
         const rarityInfo = RARITY[card.rarity];
         const styleInfo = ALL_STYLES.find(s => s.id === card.style);
+        const cardIcon = getCardPixelArt(card);
         
-        cardElement.style.borderColor = rarityInfo.color;
-        cardElement.innerHTML = `
-            <div class="card-header" style="background: ${styleInfo?.color || '#666'}">
-                <span class="card-style">${styleInfo?.name || card.style}</span>
-                <span class="card-rarity" style="color: ${rarityInfo.color}">${rarityInfo.name}</span>
-            </div>
-            <div class="card-name">${card.name}</div>
-            <div class="card-cost" style="color: #ffd700">${rarityInfo.cost} золота</div>
-        `;
+        if (isNewLayout) {
+            // Новый стиль с пиксель-арт
+            cardElement.style.borderColor = rarityInfo.color;
+            cardElement.innerHTML = `
+                ${cardIcon ? `<img src="${cardIcon}" alt="${card.name}" class="card-image">` : 
+                  `<div class="card-image" style="background: ${styleInfo?.color || '#666'}; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 24px;">${styleIcons[card.style] || '🎴'}</div>`}
+                <div class="card-name-pixel">${card.name}</div>
+                <div class="card-cost-pixel">${rarityInfo.cost}💰</div>
+            `;
+        } else {
+            // Старый стиль
+            cardElement.style.borderColor = rarityInfo.color;
+            cardElement.innerHTML = `
+                <div class="card-header" style="background: ${styleInfo?.color || '#666'}">
+                    <span class="card-style">${styleInfo?.name || card.style}</span>
+                    <span class="card-rarity" style="color: ${rarityInfo.color}">${rarityInfo.name}</span>
+                </div>
+                <div class="card-name">${card.name}</div>
+                <div class="card-cost" style="color: #ffd700">${rarityInfo.cost} золота</div>
+            `;
+        }
         
         if (gameState.gold < rarityInfo.cost) {
             cardElement.classList.add('unaffordable');
@@ -991,6 +1097,18 @@ function renderShop() {
         shopContainer.appendChild(cardElement);
     });
 }
+
+// Иконки стилей для карточек
+const styleIcons = {
+    'critical': '⚔️',
+    'frost': '❄️',
+    'poison': '☠️',
+    'fury': '⚡',
+    'tank': '🛡️',
+    'evasion': '💨',
+    'shield': '🛡️',
+    'ultimate': '✨'
+};
 
 // Покупка карточки
 function buyCard(shopIndex) {
@@ -1029,6 +1147,13 @@ function applyCardEffect(card, silent = false) {
     // Если карточка имеет уровень больше 1, эффекты уже масштабированы
     const level = card.level || 1;
     
+    const oldStats = {
+        health: gameState.gladiator.maxHealth,
+        armor: gameState.gladiator.armor,
+        damage: gameState.gladiator.damage,
+        attackSpeed: gameState.gladiator.attackSpeed
+    };
+    
     // Применяем базовые характеристики
     if (effect.health) {
         gameState.gladiator.maxHealth += effect.health;
@@ -1063,6 +1188,28 @@ function applyCardEffect(card, silent = false) {
     if (!silent) {
         const levelText = level > 1 ? ` (ур. ${level})` : '';
         addLog(`Карточка "${card.name}"${levelText} применена!`, 'info');
+        
+        // Показываем обновленные характеристики
+        const statChanges = [];
+        if (effect.health) {
+            statChanges.push(`HP: ${oldStats.health} → ${gameState.gladiator.maxHealth}`);
+        }
+        if (effect.armor) {
+            statChanges.push(`Броня: ${oldStats.armor} → ${gameState.gladiator.armor}`);
+        }
+        if (effect.damage) {
+            statChanges.push(`Урон: ${oldStats.damage} → ${gameState.gladiator.damage}`);
+        }
+        if (effect.attackSpeed) {
+            statChanges.push(`Скорость: ${oldStats.attackSpeed.toFixed(2)} → ${gameState.gladiator.attackSpeed.toFixed(2)}`);
+        }
+        
+        if (statChanges.length > 0) {
+            addLog(`📊 Новые характеристики: ${statChanges.join(', ')}`, 'info');
+        }
+        
+        // Обновляем отображение характеристик
+        renderGladiator();
     }
 }
 
@@ -1081,60 +1228,120 @@ function getCardEffectPreview(card) {
     return effects.length > 0 ? ` (${effects.join(', ')})` : '';
 }
 
-// Рендеринг гладиатора
+// Рендеринг гладиатора (новая версия для нового layout)
 function renderGladiator() {
-    const gladiatorContainer = document.getElementById('gladiator');
-    if (!gladiatorContainer || !gameState.gladiator) return;
+    // Характеристики слева
+    const statsContainer = document.getElementById('character-stats');
+    const abilitiesContainer = document.getElementById('character-abilities');
+    const portraitImg = document.getElementById('character-image');
+    
+    if (!gameState.gladiator) return;
     
     const gladiator = gameState.gladiator;
-    const healthPercent = (gladiator.currentHealth / gladiator.maxHealth) * 100;
-    const manaPercent = (gladiator.mana / gladiator.maxMana) * 100;
     
-    gladiatorContainer.innerHTML = `
-        <div class="gladiator-display">
-            <h3>${gladiator.name}</h3>
-            <div class="gladiator-stats">
-                <div>HP: ${Math.ceil(gladiator.currentHealth)}/${gladiator.maxHealth}</div>
-                <div>Урон: ${gladiator.damage}</div>
-                <div>Броня: ${gladiator.armor}</div>
-                <div>Скорость атаки: ${gladiator.attackSpeed.toFixed(2)}</div>
+    // Характеристики
+    if (statsContainer) {
+        statsContainer.innerHTML = `
+            <div class="stat-item">
+                <span class="stat-label">HP:</span>
+                <span class="stat-value">${Math.ceil(gladiator.currentHealth)}/${gladiator.maxHealth}</span>
             </div>
-            <div class="health-bar">
-                <div class="health-label">Здоровье</div>
-                <div class="health-fill" style="width: ${healthPercent}%"></div>
+            <div class="stat-item">
+                <span class="stat-label">Урон:</span>
+                <span class="stat-value">${gladiator.damage}</span>
             </div>
-            <div class="mana-bar">
-                <div class="mana-label">Мана: ${Math.ceil(gladiator.mana)}/${gladiator.maxMana}</div>
-                <div class="mana-fill" style="width: ${manaPercent}%"></div>
+            <div class="stat-item">
+                <span class="stat-label">Броня:</span>
+                <span class="stat-value">${gladiator.armor}</span>
             </div>
-            <div class="abilities-display">
-                <div class="ability-info">
-                    <strong>Пассивная:</strong> ${gladiator.passive.name}
-                    <div class="ability-desc-small">${gladiator.passive.description}</div>
+            <div class="stat-item">
+                <span class="stat-label">Скорость атаки:</span>
+                <span class="stat-value">${gladiator.attackSpeed.toFixed(2)}</span>
+            </div>
+        `;
+    }
+    
+    // Способности
+    if (abilitiesContainer) {
+        abilitiesContainer.innerHTML = `
+            <div class="ability-item">
+                <h5>⚡ ${gladiator.passive.name}</h5>
+                <p>${gladiator.passive.description}</p>
+            </div>
+            <div class="ability-item">
+                <h5>✨ ${gladiator.active.name}</h5>
+                <p>${gladiator.active.description}</p>
+                <p style="font-size: 0.75em; opacity: 0.7; margin-top: 5px;">
+                    Мана: ${gladiator.active.manaCost} | КД: ${gladiator.active.cooldown/1000}с
+                </p>
+            </div>
+        `;
+    }
+    
+    // Изображение персонажа по центру
+    if (portraitImg) {
+        const heroImage = getHeroImage(gladiator);
+        if (heroImage) {
+            portraitImg.src = heroImage;
+            portraitImg.style.display = 'block';
+        } else {
+            portraitImg.style.display = 'none';
+        }
+    }
+    
+    // Купленные способности справа
+    renderOwnedCards();
+    
+    // Fallback для старого layout
+    const gladiatorContainer = document.getElementById('gladiator');
+    if (gladiatorContainer && !statsContainer) {
+        const healthPercent = (gladiator.currentHealth / gladiator.maxHealth) * 100;
+        const manaPercent = (gladiator.mana / gladiator.maxMana) * 100;
+        gladiatorContainer.innerHTML = `
+            <div class="gladiator-display">
+                <h3>${gladiator.name}</h3>
+                <div class="gladiator-stats">
+                    <div>HP: ${Math.ceil(gladiator.currentHealth)}/${gladiator.maxHealth}</div>
+                    <div>Урон: ${gladiator.damage}</div>
+                    <div>Броня: ${gladiator.armor}</div>
+                    <div>Скорость атаки: ${gladiator.attackSpeed.toFixed(2)}</div>
                 </div>
-                <div class="ability-info">
-                    <strong>Активная:</strong> ${gladiator.active.name}
-                    <div class="ability-desc-small">${gladiator.active.description}</div>
+                <div class="health-bar">
+                    <div class="health-label">Здоровье</div>
+                    <div class="health-fill" style="width: ${healthPercent}%"></div>
+                </div>
+                <div class="mana-bar">
+                    <div class="mana-label">Мана: ${Math.ceil(gladiator.mana)}/${gladiator.maxMana}</div>
+                    <div class="mana-fill" style="width: ${manaPercent}%"></div>
                 </div>
             </div>
-            <div class="gladiator-cards">
-                <h4>Карточки (${gameState.cards.length}):</h4>
-                <div class="cards-list">
-                    ${gameState.cards.length > 0 ? gameState.cards.map(card => {
-                        const effectPreview = getCardEffectPreview(card);
-                        const level = card.level || 1;
-                        const levelText = level > 1 ? ` [${level}]` : '';
-                        return `
-                        <div class="owned-card" style="border-left: 3px solid ${RARITY[card.rarity].color};">
-                            <span style="color: ${RARITY[card.rarity].color}; font-weight: bold;">${card.name}${levelText}</span>
-                            ${effectPreview ? `<div class="card-effect-preview">${effectPreview}</div>` : ''}
-                        </div>
-                    `;
-                    }).join('') : '<div class="no-cards">Нет карточек</div>'}
-                </div>
+        `;
+    }
+}
+
+// Рендеринг купленных карточек
+function renderOwnedCards() {
+    const ownedContainer = document.getElementById('owned-cards');
+    if (!ownedContainer) return;
+    
+    if (gameState.cards.length === 0) {
+        ownedContainer.innerHTML = '<div style="text-align: center; opacity: 0.5; padding: 20px;">Нет купленных способностей</div>';
+        return;
+    }
+    
+    ownedContainer.innerHTML = gameState.cards.map(card => {
+        const level = card.level || 1;
+        const levelText = level > 1 ? ` Lv${level}` : '';
+        const cardIcon = getCardPixelArt(card);
+        
+        return `
+            <div class="owned-card-pixel" style="border-color: ${RARITY[card.rarity].color};">
+                ${cardIcon ? `<img src="${cardIcon}" alt="${card.name}">` : 
+                  `<div style="width:32px;height:32px;background:${ALL_STYLES.find(s => s.id === card.style)?.color || '#666'};display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;">${styleIcons[card.style] || '🎴'}</div>`}
+                <span style="color: ${RARITY[card.rarity].color}; font-size: 0.65em; font-weight: bold;">${card.name}${levelText}</span>
             </div>
-        </div>
-    `;
+        `;
+    }).join('');
 }
 
 // Обновление UI

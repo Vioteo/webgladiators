@@ -69,51 +69,71 @@
                 </div>
             </header>
 
-            <div class="main-content single-gladiator">
-                <!-- Левая панель: Гладиатор -->
-                <div class="left-panel">
-                    <div id="gladiator" class="gladiator-section">
+            <div class="main-content new-layout">
+                <!-- Левая панель: Характеристики и способности персонажа -->
+                <div class="left-panel-character">
+                    <div id="gladiator" class="character-stats-panel">
+                        <h3>Характеристики</h3>
+                        <div id="character-stats" class="character-stats"></div>
+                        <div class="character-abilities">
+                            <h4>Способности</h4>
+                            <div id="character-abilities" class="abilities-list"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Центральная панель: Картинка персонажа и бой -->
+                <div class="center-panel-character">
+                    <div id="character-portrait" class="character-portrait">
+                        <div class="portrait-container">
+                            <img id="character-image" src="" alt="Персонаж" class="character-image">
+                        </div>
+                        <!-- Визуализация боя -->
                         <div id="battle-visualization" class="battle-visualization hidden">
-                            <div class="battle-gladiator">
+                            <div class="battle-arena">
                                 <div id="player-battle-info" class="battle-gladiator-info"></div>
+                                <div id="enemy-battle-info" class="battle-gladiator-info enemy"></div>
+                            </div>
+                            <div id="battle-effects" class="battle-effects-container">
                                 <div id="player-effects" class="effects-display"></div>
+                                <div id="enemy-effects" class="effects-display"></div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Центральная панель: Магазин -->
-                <div class="center-panel">
+                <!-- Правая панель: Купленные способности и противник -->
+                <div class="right-panel-character">
+                    <!-- Купленные способности -->
+                    <div class="owned-abilities-panel">
+                        <h3>Купленные способности</h3>
+                        <div id="owned-cards" class="owned-cards-grid"></div>
+                    </div>
+                    <!-- Противник -->
+                    <div id="enemy-gladiator" class="enemy-panel">
+                        <h3>Противник</h3>
+                        <div id="enemy-info" class="enemy-info">
+                            <div id="enemy-gladiator-normal" class="enemy-display">
+                                <p>Ожидание противника...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Нижняя панель: Магазин способностей -->
+                <div class="bottom-panel-shop">
                     <div class="shop-section">
                         <div class="shop-header">
-                            <h2>Магазин карточек</h2>
+                            <h2>Магазин способностей</h2>
                             <button id="refresh-shop-btn" class="btn btn-secondary">Обновить (2 золота)</button>
                         </div>
-                        <div id="shop" class="shop-grid"></div>
+                        <div id="shop" class="shop-grid-pixel"></div>
                         <div class="available-styles" id="available-styles"></div>
                     </div>
                     <div class="battle-status-section">
                         <div class="battle-status" id="battle-status">Подготовка к бою</div>
                         <button id="ready-btn" class="btn btn-primary btn-large">Готов к бою</button>
                         <button id="not-ready-btn" class="btn btn-secondary btn-large hidden">Отменить готовность</button>
-                    </div>
-                </div>
-
-                <!-- Правая панель: Противник -->
-                <div class="right-panel">
-                    <div id="enemy-gladiator" class="gladiator-section enemy">
-                        <div id="enemy-battle-visualization" class="battle-visualization hidden">
-                            <div class="battle-gladiator">
-                                <div id="enemy-battle-info" class="battle-gladiator-info"></div>
-                                <div id="enemy-effects" class="effects-display"></div>
-                            </div>
-                        </div>
-                        <div id="enemy-gladiator-normal" class="gladiator-display">
-                            <h3>Противник</h3>
-                            <div class="gladiator-stats">
-                                <div>Ожидание...</div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
