@@ -1042,6 +1042,21 @@ function renderRarityChances(styleProgress) {
     stylesContainer.innerHTML = infoHTML;
 }
 
+// Получение пиксель-арт изображения для карточки
+function getCardPixelArt(card) {
+    if (!card) return '';
+    
+    // Можно использовать простые эмодзи или создать маппинг на изображения
+    // Пока возвращаем пустую строку, чтобы использовались эмодзи из styleIcons
+    // В будущем можно добавить маппинг на реальные изображения:
+    // const CARD_PIXEL_ART = {
+    //     'crit_chance_1': 'path/to/image.png',
+    //     ...
+    // };
+    
+    return '';
+}
+
 // Рендеринг магазина (новая версия с пиксель-арт)
 function renderShop() {
     const shopContainer = document.getElementById('shop');
