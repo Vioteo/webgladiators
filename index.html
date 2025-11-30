@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Gladiators - Два игрока</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Экран подключения -->
+    <div id="connection-screen" class="screen">
+        <div class="connection-panel">
+            <h1>⚔️ Auto Gladiators</h1>
+            <h2>Подключение к игре</h2>
+            <div class="connection-form">
+                <div class="form-group">
+                    <label>Имя игрока:</label>
+                    <input type="text" id="player-name" placeholder="Введите ваше имя" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label>Адрес сервера:</label>
+                    <input type="text" id="server-url" value="http://localhost:3000" placeholder="http://localhost:3000">
+                </div>
+                <button id="connect-btn" class="btn btn-primary">Подключиться</button>
+                <button id="create-room-btn" class="btn btn-secondary">Создать комнату</button>
+            </div>
+            <div id="connection-status" class="status-message"></div>
+        </div>
+    </div>
+
+    <!-- Экран выбора героев -->
+    <div id="hero-selection-screen" class="screen hidden">
+        <div class="hero-selection-panel">
+            <h1>Выбор героев</h1>
+            <div class="selection-info">
+                <p>Выберите <strong id="heroes-to-select">3</strong> героев для вашей команды</p>
+                <div id="selected-count" class="selected-count">Выбрано: 0/3</div>
+            </div>
+            <div id="hero-selection-grid" class="hero-selection-grid"></div>
+            <button id="confirm-selection-btn" class="btn btn-primary" disabled>Подтвердить выбор</button>
+            <div id="waiting-message" class="waiting-message hidden">Ожидание другого игрока...</div>
+        </div>
+    </div>
+
+    <!-- Игровой экран -->
+    <div id="game-screen" class="screen hidden">
+        <div class="game-container">
+            <header class="game-header">
+                <h1>⚔️ Auto Gladiators</h1>
+                <div class="game-info">
+                    <div class="info-item">
+                        <span class="label">Игрок:</span>
+                        <span id="player-display-name">Игрок</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Раунд:</span>
+                        <span id="current-round">1</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Жизни:</span>
+                        <span id="lives">100</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="main-content two-players">
+                <!-- Ваша арена -->
+                <div class="player-arena">
+                    <h2 class="arena-title">Ваша команда</h2>
+                    <div id="player-arena" class="arena-grid-small"></div>
+                    <div class="arena-info">
+                        <div class="heroes-list" id="player-heroes-list"></div>
+                    </div>
+                </div>
+
+                <!-- Центральная панель -->
+                <div class="center-panel">
+                    <div class="battle-status" id="battle-status">
+                        <div class="status-text">Подготовка к бою</div>
+                    </div>
+                    <button id="ready-btn" class="btn btn-primary btn-large">Готов к бою</button>
+                    <button id="not-ready-btn" class="btn btn-secondary btn-large hidden">Отменить готовность</button>
+                </div>
+
+                <!-- Арена противника -->
+                <div class="enemy-arena">
+                    <h2 class="arena-title">Команда противника</h2>
+                    <div id="enemy-arena" class="arena-grid-small"></div>
+                    <div class="arena-info">
+                        <div class="heroes-list" id="enemy-heroes-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="game-log-section">
+                <h2>Журнал боя</h2>
+                <div id="log" class="log-content"></div>
+            </div>
+
+            <div id="battle-result" class="battle-result hidden"></div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
