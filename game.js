@@ -13,19 +13,20 @@ const ALL_STYLES = [
     { id: 'tank', name: 'Танк', color: '#888888' },
     { id: 'evasion', name: 'Уклонение', color: '#ff44ff' },
     { id: 'shield', name: 'Щит', color: '#4444ff' },
-    { id: 'ultimate', name: 'Ультимейт', color: '#ffff44' }
+    { id: 'ultimate', name: 'Ультимейт', color: '#ffff44' },
+    { id: 'heal', name: 'Лечение', color: '#44ff88' }
 ];
 
-// URL изображений героев (Dota 2)
+// URL изображений героев (Dota 2) - используем прямые ссылки
 const HERO_IMAGES = {
-    'axe': 'https://cdn.dota2.com/apps/dota2/images/heroes/axe_full.png',
-    'sven': 'https://cdn.dota2.com/apps/dota2/images/heroes/sven_full.png',
-    'drow': 'https://cdn.dota2.com/apps/dota2/images/heroes/drow_ranger_full.png',
-    'pudge': 'https://cdn.dota2.com/apps/dota2/images/heroes/pudge_full.png',
-    'riki': 'https://cdn.dota2.com/apps/dota2/images/heroes/riki_full.png',
-    'crystal': 'https://cdn.dota2.com/apps/dota2/images/heroes/crystal_maiden_full.png',
-    'juggernaut': 'https://cdn.dota2.com/apps/dota2/images/heroes/juggernaut_full.png',
-    'lina': 'https://cdn.dota2.com/apps/dota2/images/heroes/lina_full.png'
+    'axe': 'https://api.opendota.com/apps/dota2/images/heroes/axe_full.png',
+    'sven': 'https://api.opendota.com/apps/dota2/images/heroes/sven_full.png',
+    'drow': 'https://api.opendota.com/apps/dota2/images/heroes/drow_ranger_full.png',
+    'pudge': 'https://api.opendota.com/apps/dota2/images/heroes/pudge_full.png',
+    'riki': 'https://api.opendota.com/apps/dota2/images/heroes/riki_full.png',
+    'crystal': 'https://api.opendota.com/apps/dota2/images/heroes/crystal_maiden_full.png',
+    'juggernaut': 'https://api.opendota.com/apps/dota2/images/heroes/juggernaut_full.png',
+    'lina': 'https://api.opendota.com/apps/dota2/images/heroes/lina_full.png'
 };
 
 // Герои с пассивными и активными способностями
@@ -34,7 +35,7 @@ const HEROES = [
         id: 'axe',
         name: 'Axe',
         style: 'tank',
-        health: 1200,
+        health: 12000,
         damage: 55,
         armor: 4,
         attackSpeed: 1.2,
@@ -53,7 +54,7 @@ const HEROES = [
         id: 'sven',
         name: 'Sven',
         style: 'critical',
-        health: 1000,
+        health: 10000,
         damage: 75,
         armor: 2,
         attackSpeed: 1.5,
@@ -72,7 +73,7 @@ const HEROES = [
         id: 'drow',
         name: 'Drow Ranger',
         style: 'frost',
-        health: 800,
+        health: 8000,
         damage: 70,
         armor: 1,
         attackSpeed: 1.8,
@@ -91,7 +92,7 @@ const HEROES = [
         id: 'pudge',
         name: 'Pudge',
         style: 'tank',
-        health: 1300,
+        health: 13000,
         damage: 50,
         armor: 3,
         attackSpeed: 1.1,
@@ -110,7 +111,7 @@ const HEROES = [
         id: 'riki',
         name: 'Riki',
         style: 'critical',
-        health: 850,
+        health: 8500,
         damage: 80,
         armor: 1,
         attackSpeed: 1.7,
@@ -129,7 +130,7 @@ const HEROES = [
         id: 'crystal',
         name: 'Crystal Maiden',
         style: 'frost',
-        health: 750,
+        health: 7500,
         damage: 55,
         armor: 0,
         attackSpeed: 1.6,
@@ -148,7 +149,7 @@ const HEROES = [
         id: 'juggernaut',
         name: 'Juggernaut',
         style: 'fury',
-        health: 950,
+        health: 9500,
         damage: 65,
         armor: 2,
         attackSpeed: 1.6,
@@ -167,7 +168,7 @@ const HEROES = [
         id: 'lina',
         name: 'Lina',
         style: 'ultimate',
-        health: 800,
+        health: 8000,
         damage: 60,
         armor: 1,
         attackSpeed: 1.7,
@@ -186,11 +187,11 @@ const HEROES = [
 
 // Редкость карточек
 const RARITY = {
-    common: { name: 'Обычная', color: '#cccccc', cost: 2 },
-    uncommon: { name: 'Необычная', color: '#44ff44', cost: 3 },
-    rare: { name: 'Редкая', color: '#4488ff', cost: 4 },
-    epic: { name: 'Эпическая', color: '#8844ff', cost: 5 },
-    legendary: { name: 'Легендарная', color: '#ff8844', cost: 6 }
+    common: { name: 'Обычная', color: '#cccccc', cost: 5, maxLevel: 5 },
+    uncommon: { name: 'Необычная', color: '#44ff44', cost: 7, maxLevel: 4 },
+    rare: { name: 'Редкая', color: '#4488ff', cost: 10, maxLevel: 3 },
+    epic: { name: 'Эпическая', color: '#8844ff', cost: 15, maxLevel: 2 },
+    legendary: { name: 'Легендарная', color: '#ff8844', cost: 25, maxLevel: 1 }
 };
 
 // Карточки улучшений для стилей
@@ -250,6 +251,13 @@ const CARDS = {
         { id: 'ult_chain_1', name: 'Цепная ульта', rarity: 'rare', effect: { chain: true } },
         { id: 'ult_execute', name: 'Казнь', rarity: 'epic', effect: { execute: true } },
         { id: 'ult_master', name: 'Мастер ульты', rarity: 'legendary', effect: { ultDamage: 150, cooldown: -50 } }
+    ],
+    heal: [
+        { id: 'heal_regen_1', name: 'Регенерация +5', rarity: 'common', effect: { regen: 5 } },
+        { id: 'heal_amount_1', name: 'Лечение +30', rarity: 'uncommon', effect: { healAmount: 30 } },
+        { id: 'heal_on_hit_1', name: 'Лечение при атаке +10', rarity: 'rare', effect: { healOnHit: 10 } },
+        { id: 'heal_shield', name: 'Щит восстановления', rarity: 'epic', effect: { healShield: true } },
+        { id: 'heal_master', name: 'Мастер лечения', rarity: 'legendary', effect: { regen: 15, healAmount: 50 } }
     ]
 };
 
@@ -639,12 +647,9 @@ function setupSocketListeners() {
     
     gameState.socket.on('battle-result', (result) => {
         // Скрываем визуализацию боя
-        const battleViz = document.getElementById('battle-visualization');
-        if (battleViz) {
-            setTimeout(() => {
-                battleViz.classList.add('hidden');
-            }, 500);
-        }
+        setTimeout(() => {
+            hideBattleVisualization();
+        }, 500);
         
         const isWinner = result.winner === gameState.socket.id;
         gameState.lives = isWinner ? result.winnerLives : result.loserLives;
@@ -1122,7 +1127,8 @@ const styleIcons = {
     'tank': '🛡️',
     'evasion': '💨',
     'shield': '🛡️',
-    'ultimate': '✨'
+    'ultimate': '✨',
+    'heal': '💚'
 };
 
 // Покупка карточки
@@ -1135,12 +1141,39 @@ function buyCard(shopIndex) {
         return;
     }
     
-    gameState.gold -= rarityInfo.cost;
-    gameState.cards.push(card);
-    applyCardEffect(card);
+    // Проверяем есть ли уже такая карточка
+    const existingCardIndex = gameState.cards.findIndex(c => c.id === card.id);
     
-    gameState.shop.splice(shopIndex, 1);
-    addLog(`Куплена карточка: ${card.name} (${RARITY[card.rarity].name})`, 'info');
+    if (existingCardIndex >= 0) {
+        // Карточка уже есть - повышаем уровень
+        const existingCard = gameState.cards[existingCardIndex];
+        const maxLevel = rarityInfo.maxLevel || 5;
+        
+        if (existingCard.level >= maxLevel) {
+            addLog(`Карточка "${card.name}" уже максимального уровня (${maxLevel})!`, 'info');
+            return;
+        }
+        
+        // Повышаем уровень
+        existingCard.level = (existingCard.level || 1) + 1;
+        
+        // Применяем эффект с учетом уровня (бонус увеличивается)
+        const levelMultiplier = existingCard.level === maxLevel ? 1.5 : 1.2; // Последний уровень дает 1.5x бонус
+        applyCardEffect(card, false, levelMultiplier);
+        
+        gameState.gold -= rarityInfo.cost;
+        gameState.shop.splice(shopIndex, 1);
+        addLog(`Карточка "${card.name}" повышена до уровня ${existingCard.level} (${RARITY[card.rarity].name})!`, 'info');
+    } else {
+        // Новая карточка
+        card.level = 1;
+        gameState.gold -= rarityInfo.cost;
+        gameState.cards.push(card);
+        applyCardEffect(card);
+        
+        gameState.shop.splice(shopIndex, 1);
+        addLog(`Куплена карточка: ${card.name} (${RARITY[card.rarity].name})`, 'info');
+    }
     
     // Обновляем отображение с новыми шансами
     const styleProgress = getStyleProgress();
@@ -1151,7 +1184,7 @@ function buyCard(shopIndex) {
 }
 
 // Применение эффекта карточки
-function applyCardEffect(card, silent = false) {
+function applyCardEffect(card, silent = false, levelMultiplier = 1.0) {
     const effect = card.effect;
     
     if (!gameState.gladiator) {
@@ -1161,6 +1194,7 @@ function applyCardEffect(card, silent = false) {
     
     // Если карточка имеет уровень больше 1, эффекты уже масштабированы
     const level = card.level || 1;
+    const multiplier = levelMultiplier;
     
     const oldStats = {
         health: gameState.gladiator.maxHealth,
@@ -1169,23 +1203,27 @@ function applyCardEffect(card, silent = false) {
         attackSpeed: gameState.gladiator.attackSpeed
     };
     
-    // Применяем базовые характеристики
+    // Применяем базовые характеристики с учетом уровня
     if (effect.health) {
-        gameState.gladiator.maxHealth += effect.health;
-        gameState.gladiator.currentHealth += effect.health;
-        if (!silent) addLog(`+${effect.health} к здоровью!`, 'heal');
+        const bonus = Math.floor(effect.health * multiplier);
+        gameState.gladiator.maxHealth += bonus;
+        gameState.gladiator.currentHealth += bonus;
+        if (!silent) addLog(`+${bonus} к здоровью!`, 'heal');
     }
     if (effect.armor) {
-        gameState.gladiator.armor += effect.armor;
-        if (!silent) addLog(`+${effect.armor} к броне!`, 'info');
+        const bonus = Math.floor(effect.armor * multiplier);
+        gameState.gladiator.armor += bonus;
+        if (!silent) addLog(`+${bonus} к броне!`, 'info');
     }
     if (effect.damage) {
-        gameState.gladiator.damage += effect.damage;
-        if (!silent) addLog(`+${effect.damage} к урону!`, 'info');
+        const bonus = Math.floor(effect.damage * multiplier);
+        gameState.gladiator.damage += bonus;
+        if (!silent) addLog(`+${bonus} к урону!`, 'info');
     }
     if (effect.attackSpeed) {
-        gameState.gladiator.attackSpeed += effect.attackSpeed / 100;
-        if (!silent) addLog(`+${effect.attackSpeed}% к скорости атаки!`, 'info');
+        const bonus = effect.attackSpeed * multiplier;
+        gameState.gladiator.attackSpeed += bonus / 100;
+        if (!silent) addLog(`+${bonus.toFixed(1)}% к скорости атаки!`, 'info');
     }
     
     // Сохраняем все эффекты для боя (включая специальные)
@@ -1256,6 +1294,12 @@ function renderGladiator() {
     
     // Характеристики
     if (statsContainer) {
+        // Получаем текущие характеристики из эффектов
+        const effects = gladiator.effects || {};
+        const critChance = effects.critChance || 0;
+        const evasionChance = effects.evasionChance || 0;
+        const regen = effects.regen || 0;
+        
         statsContainer.innerHTML = `
             <div class="stat-item">
                 <span class="stat-label">HP:</span>
@@ -1273,6 +1317,9 @@ function renderGladiator() {
                 <span class="stat-label">Скорость атаки:</span>
                 <span class="stat-value">${gladiator.attackSpeed.toFixed(2)}</span>
             </div>
+            ${critChance > 0 ? `<div class="stat-item"><span class="stat-label">Шанс крита:</span><span class="stat-value">${critChance}%</span></div>` : ''}
+            ${evasionChance > 0 ? `<div class="stat-item"><span class="stat-label">Уклонение:</span><span class="stat-value">${evasionChance}%</span></div>` : ''}
+            ${regen > 0 ? `<div class="stat-item"><span class="stat-label">Регенерация:</span><span class="stat-value">+${regen}/сек</span></div>` : ''}
         `;
     }
     
@@ -1404,6 +1451,13 @@ function setReady() {
 }
 
 function setNotReady() {
+    // Нельзя отменить готовность во время боя
+    const battleViz = document.getElementById('battle-visualization');
+    if (battleViz && !battleViz.classList.contains('hidden')) {
+        addLog('Нельзя отменить готовность во время боя!', 'error');
+        return;
+    }
+    
     gameState.isReady = false;
     gameState.socket.emit('player-not-ready', { roomId: gameState.roomId });
     
@@ -1465,8 +1519,37 @@ function showBattleVisualization(data) {
     const battleViz = document.getElementById('battle-visualization');
     const enemyBattleViz = document.getElementById('enemy-battle-visualization');
     
-    if (battleViz) battleViz.classList.remove('hidden');
+    // Показываем визуализацию боя
+    if (battleViz) {
+        battleViz.classList.remove('hidden');
+        battleViz.classList.add('battle-fullscreen');
+    }
     if (enemyBattleViz) enemyBattleViz.classList.remove('hidden');
+    
+    // Скрываем магазин и другие элементы
+    const shopPanel = document.querySelector('.bottom-panel-shop');
+    const leftPanel = document.querySelector('.left-panel-character');
+    const rightPanel = document.querySelector('.right-panel-character');
+    const gameLog = document.querySelector('.game-log-section');
+    const notReadyBtn = document.getElementById('not-ready-btn');
+    const readyBtn = document.getElementById('ready-btn');
+    
+    if (shopPanel) shopPanel.classList.add('hidden');
+    if (leftPanel) leftPanel.classList.add('hidden');
+    if (rightPanel) rightPanel.classList.add('hidden');
+    if (gameLog) gameLog.classList.add('hidden');
+    if (notReadyBtn) notReadyBtn.classList.add('hidden');
+    if (readyBtn) readyBtn.classList.add('hidden');
+    
+    // Запускаем таймер боя
+    battleStartTime = Date.now();
+    if (battleTimerInterval) clearInterval(battleTimerInterval);
+    battleTimerInterval = setInterval(() => {
+        if (battleStartTime) {
+            const elapsed = (Date.now() - battleStartTime) / 1000;
+            updateBattleTimer(elapsed);
+        }
+    }, 100);
     
     // Определяем какой гладиатор наш
     const isPlayer1 = data.gladiator1.name === gameState.gladiator?.name;
@@ -1475,6 +1558,42 @@ function showBattleVisualization(data) {
     
     updateBattleGladiator('player-battle-info', playerGlad, false);
     updateBattleGladiator('enemy-battle-info', enemyGlad, true);
+}
+
+function hideBattleVisualization() {
+    const battleViz = document.getElementById('battle-visualization');
+    if (battleViz) {
+        battleViz.classList.add('hidden');
+        battleViz.classList.remove('battle-fullscreen');
+    }
+    
+    // Показываем обратно скрытые элементы
+    const shopPanel = document.querySelector('.bottom-panel-shop');
+    const leftPanel = document.querySelector('.left-panel-character');
+    const rightPanel = document.querySelector('.right-panel-character');
+    const gameLog = document.querySelector('.game-log-section');
+    const notReadyBtn = document.getElementById('not-ready-btn');
+    const readyBtn = document.getElementById('ready-btn');
+    
+    if (shopPanel) shopPanel.classList.remove('hidden');
+    if (leftPanel) leftPanel.classList.remove('hidden');
+    if (rightPanel) rightPanel.classList.remove('hidden');
+    if (gameLog) gameLog.classList.remove('hidden');
+    
+    // Показываем кнопки готовности в зависимости от состояния
+    if (gameState.isReady && notReadyBtn) {
+        notReadyBtn.classList.remove('hidden');
+        if (readyBtn) readyBtn.classList.add('hidden');
+    } else if (!gameState.isReady && readyBtn) {
+        readyBtn.classList.remove('hidden');
+        if (notReadyBtn) notReadyBtn.classList.add('hidden');
+    }
+    
+    if (battleTimerInterval) {
+        clearInterval(battleTimerInterval);
+        battleTimerInterval = null;
+    }
+    battleStartTime = null;
 }
 
 // Получение URL изображения героя
@@ -1512,24 +1631,24 @@ function updateBattleGladiator(elementId, gladiator, isEnemy) {
     const element = document.getElementById(elementId);
     if (!element) return;
     
-    const healthPercent = (gladiator.health / gladiator.maxHealth) * 100;
-    const manaPercent = (gladiator.mana / gladiator.maxMana) * 100;
+    const healthPercent = Math.max(0, Math.min(100, (gladiator.health / gladiator.maxHealth) * 100));
+    const manaPercent = Math.max(0, Math.min(100, (gladiator.mana / gladiator.maxMana) * 100));
     const heroImage = getHeroImage(gladiator);
     
     element.innerHTML = `
         <div class="battle-hero-container">
             <div class="battle-hero-image-container ${isEnemy ? 'enemy' : 'player'}">
-                ${heroImage ? `<img src="${heroImage}" alt="${gladiator.name}" class="battle-hero-image" onerror="this.style.display='none'">` : ''}
+                ${heroImage ? `<img src="${heroImage}" alt="${gladiator.name}" class="battle-hero-image" onerror="this.onerror=null; this.src=''; this.style.display='none'">` : `<div class="battle-hero-placeholder">${gladiator.name.charAt(0)}</div>`}
             </div>
             <div class="battle-hero-info">
                 <div class="battle-gladiator-name">${gladiator.name}</div>
-                <div class="battle-health-bar">
+                <div class="battle-health-bar" style="position: relative;">
                     <div class="battle-health-fill" style="width: ${healthPercent}%"></div>
-                    <div class="battle-health-text">${Math.ceil(gladiator.health)}/${gladiator.maxHealth}</div>
+                    <div class="battle-health-text" style="position: absolute; width: 100%; text-align: center; z-index: 10; color: #fff; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); top: 50%; transform: translateY(-50%);">${Math.ceil(gladiator.health)}/${gladiator.maxHealth}</div>
                 </div>
-                <div class="battle-mana-bar">
+                <div class="battle-mana-bar" style="position: relative;">
                     <div class="battle-mana-fill" style="width: ${manaPercent}%"></div>
-                    <div class="battle-mana-text">${Math.ceil(gladiator.mana)}/${gladiator.maxMana}</div>
+                    <div class="battle-mana-text" style="position: absolute; width: 100%; text-align: center; z-index: 10; color: #fff; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); top: 50%; transform: translateY(-50%);">${Math.ceil(gladiator.mana)}/${gladiator.maxMana}</div>
                 </div>
             </div>
         </div>
@@ -1537,6 +1656,9 @@ function updateBattleGladiator(elementId, gladiator, isEnemy) {
 }
 
 // Обновить визуализацию боя
+let battleStartTime = null;
+let battleTimerInterval = null;
+
 function updateBattleVisualization(update) {
     // Определяем какой гладиатор наш
     const isPlayer1 = update.gladiator1.name === gameState.gladiator?.name || 
@@ -1551,6 +1673,20 @@ function updateBattleVisualization(update) {
     // Обновляем эффекты
     renderEffects('player-effects', playerGlad.effects || { positive: [], negative: [] });
     renderEffects('enemy-effects', enemyGlad.effects || { positive: [], negative: [] });
+    
+    // Обновляем таймер боя
+    if (update.time !== undefined) {
+        updateBattleTimer(update.time);
+    }
+}
+
+function updateBattleTimer(timeInSeconds) {
+    const timerElement = document.getElementById('battle-timer');
+    if (timerElement) {
+        const minutes = Math.floor(timeInSeconds / 60);
+        const seconds = Math.floor(timeInSeconds % 60);
+        timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
 }
 
 // Рендеринг эффектов

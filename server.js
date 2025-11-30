@@ -516,8 +516,10 @@ function simulateBattle(glad1, glad2, roomId, callback) {
         // Отправляем обновления состояния каждые 600ms для визуализации
         if (turn % 2 === 0) { // Every 2 ticks (600ms при tickRate 300ms)
             const update = {
+                time: turn * tickRate / 1000, // Время боя в секундах
                 gladiator1: {
                     name: glad1.name,
+                    id: glad1.id,
                     health: Math.max(0, glad1.currentHealth),
                     maxHealth: glad1.maxHealth,
                     mana: glad1.mana,
@@ -526,6 +528,7 @@ function simulateBattle(glad1, glad2, roomId, callback) {
                 },
                 gladiator2: {
                     name: glad2.name,
+                    id: glad2.id,
                     health: Math.max(0, glad2.currentHealth),
                     maxHealth: glad2.maxHealth,
                     mana: glad2.mana,
@@ -547,8 +550,10 @@ function simulateBattle(glad1, glad2, roomId, callback) {
             
             // Отправляем финальное обновление с HP = 0
             const finalUpdate = {
+                time: turn * tickRate / 1000,
                 gladiator1: {
                     name: glad1.name,
+                    id: glad1.id,
                     health: Math.max(0, glad1.currentHealth),
                     maxHealth: glad1.maxHealth,
                     mana: glad1.mana,
@@ -557,6 +562,7 @@ function simulateBattle(glad1, glad2, roomId, callback) {
                 },
                 gladiator2: {
                     name: glad2.name,
+                    id: glad2.id,
                     health: Math.max(0, glad2.currentHealth),
                     maxHealth: glad2.maxHealth,
                     mana: glad2.mana,
