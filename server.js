@@ -143,40 +143,59 @@ io.on('connection', (socket) => {
             return;
         }
 
-        // Проверяем переподключение
+        // Проверяем переподключение (игрок с таким именем уже в комнате)
         const existingPlayer = room.players.find(p => p.name === playerName);
         
-        if (existingPlayer && existingPlayer.id !== socket.id) {
-            // Переподключение - восстанавливаем состояние
-            existingPlayer.id = socket.id;
-            existingPlayer.socket = socket;
-            socket.emit('reconnected', {
-                gameState: room.gameState,
-                hero: existingPlayer.hero,
-                gladiator: existingPlayer.gladiator,
-                cards: existingPlayer.cards,
-                gold: existingPlayer.gold,
-                lives: existingPlayer.lives,
-                round: room.round,
-                availableStyles: room.availableStyles,
-                blockedStyles: room.blockedStyles
-            });
-            console.log(`Игрок ${playerName} переподключился`);
-        } else {
-            room.players.push({
-                id: socket.id,
-                name: playerName,
-                socket: socket,
-                hero: null,
-                gladiator: null,
-                ready: false,
-                lives: 100,
-                gold: 100,
-                cards: [],
-                styleProgress: {},
-                playerId: socket.id
-            });
+        if (existingPlayer) {
+            if (existingPlayer.id === socket.id) {
+                // Это тот же сокет - просто подтверждаем
+                socket.emit('joined-room', roomId);
+                return;
+            } else if (!existingPlayer.socket || !existingPlayer.socket.connected) {
+                // Переподключение - восстанавливаем состояние
+                existingPlayer.id = socket.id;
+                existingPlayer.socket = socket;
+                socket.emit('reconnected', {
+                    gameState: room.gameState,
+                    hero: existingPlayer.hero,
+                    gladiator: existingPlayer.gladiator,
+                    cards: existingPlayer.cards,
+                    gold: existingPlayer.gold,
+                    lives: existingPlayer.lives,
+                    round: room.round,
+                    availableStyles: room.availableStyles,
+                    blockedStyles: room.blockedStyles
+                });
+                socket.emit('joined-room', roomId);
+                console.log(`Игрок ${playerName} переподключился`);
+                broadcastRoomList();
+                return;
+            } else {
+                // Игрок с таким именем уже подключен - ошибка
+                socket.emit('error', 'Игрок с таким именем уже в комнате');
+                return;
+            }
         }
+        
+        // Новый игрок - добавляем в комнату
+        if (room.players.length >= 2) {
+            socket.emit('error', 'Комната заполнена');
+            return;
+        }
+        
+        room.players.push({
+            id: socket.id,
+            name: playerName,
+            socket: socket,
+            hero: null,
+            gladiator: null,
+            ready: false,
+            lives: 100,
+            gold: 100,
+            cards: [],
+            styleProgress: {},
+            playerId: socket.id
+        });
 
         socket.join(roomId);
         socket.emit('joined-room', roomId);
@@ -192,7 +211,7 @@ io.on('connection', (socket) => {
             });
         }
         
-        console.log(`Игрок ${playerName} присоединился к комнате ${roomId}`);
+        console.log(`Игрок ${playerName} присоединился к комнате ${roomId}. Игроков в комнате: ${room.players.length}`);
     });
 
     socket.on('select-hero', (data) => {

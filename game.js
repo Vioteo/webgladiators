@@ -16,6 +16,18 @@ const ALL_STYLES = [
     { id: 'ultimate', name: 'Ультимейт', color: '#ffff44' }
 ];
 
+// URL изображений героев (Dota 2)
+const HERO_IMAGES = {
+    'axe': 'https://cdn.dota2.com/apps/dota2/images/heroes/axe_full.png',
+    'sven': 'https://cdn.dota2.com/apps/dota2/images/heroes/sven_full.png',
+    'drow': 'https://cdn.dota2.com/apps/dota2/images/heroes/drow_ranger_full.png',
+    'pudge': 'https://cdn.dota2.com/apps/dota2/images/heroes/pudge_full.png',
+    'riki': 'https://cdn.dota2.com/apps/dota2/images/heroes/riki_full.png',
+    'crystal': 'https://cdn.dota2.com/apps/dota2/images/heroes/crystal_maiden_full.png',
+    'juggernaut': 'https://cdn.dota2.com/apps/dota2/images/heroes/juggernaut_full.png',
+    'lina': 'https://cdn.dota2.com/apps/dota2/images/heroes/lina_full.png'
+};
+
 // Герои с пассивными и активными способностями
 const HEROES = [
     {
@@ -329,15 +341,26 @@ function connectToRoom(roomId) {
     gameState.roomId = roomId;
     initSocketConnection();
     
-    gameState.socket.once('connect', () => {
+    // Если сокет уже подключен, сразу отправляем запрос
+    if (gameState.socket.connected) {
         showStatus('Подключение к комнате...', 'info');
         gameState.socket.emit('join-room', { roomId, playerName });
-    });
+    } else {
+        // Иначе ждем подключения
+        gameState.socket.once('connect', () => {
+            showStatus('Подключение к комнате...', 'info');
+            gameState.socket.emit('join-room', { roomId, playerName });
+        });
+    }
     
-    gameState.socket.once('joined-room', (roomId) => {
+    // Обработка успешного подключения
+    gameState.socket.once('joined-room', (connectedRoomId) => {
+        gameState.roomId = connectedRoomId;
         showStatus('Подключено к комнате!', 'success');
+        refreshRoomsList(); // Обновляем список комнат
     });
     
+    // Обработка ошибок
     gameState.socket.once('error', (error) => {
         showStatus(`Ошибка: ${error}`, 'error');
         setTimeout(() => refreshRoomsList(), 1000);
@@ -400,7 +423,14 @@ function setupSocketListeners() {
     
     // Автоматически запрашиваем список комнат при подключении
     gameState.socket.on('connect', () => {
+        console.log('Socket подключен');
         refreshRoomsList();
+    });
+    
+    // Обработка ошибок подключения
+    gameState.socket.on('connect_error', (error) => {
+        console.error('Ошибка подключения:', error);
+        showStatus('Ошибка подключения к серверу', 'error');
     });
     
     gameState.socket.on('styles-selected', (data) => {
@@ -524,6 +554,13 @@ function setupSocketListeners() {
     });
 }
 
+// Сохраняем функцию для глобального доступа (используется в onclick в HTML)
+if (typeof window !== 'undefined') {
+    window.connectToRoom = function(roomId) {
+        connectToRoom(roomId);
+    };
+}
+
 // Рендеринг выбора героя
 function renderHeroSelection() {
     const selectionContainer = document.getElementById('hero-selection-container');
@@ -560,9 +597,13 @@ function renderHeroSelection() {
             heroCard.classList.add('selected');
         }
         
+        const heroImage = HERO_IMAGES[hero.id] || '';
         const styleInfo = ALL_STYLES.find(s => s.id === hero.style);
         
         heroCard.innerHTML = `
+            ${heroImage ? `<div class="hero-card-image">
+                <img src="${heroImage}" alt="${hero.name}" class="hero-preview-image" onerror="this.style.display='none'">
+            </div>` : ''}
             <div class="hero-name">${hero.name}</div>
             <div class="hero-style" style="color: ${styleInfo?.color || '#fff'}">${styleInfo?.name || hero.style}</div>
             <div class="hero-stats">
@@ -1075,6 +1116,36 @@ function showBattleVisualization(data) {
     updateBattleGladiator('enemy-battle-info', enemyGlad, true);
 }
 
+// Получение URL изображения героя
+function getHeroImage(gladiator) {
+    if (!gladiator) return '';
+    
+    // Сначала пытаемся найти по id
+    if (gladiator.id) {
+        if (HERO_IMAGES[gladiator.id]) {
+            return HERO_IMAGES[gladiator.id];
+        }
+    }
+    
+    // Затем по имени (нормализованному)
+    if (gladiator.name) {
+        const normalizedName = gladiator.name.toLowerCase().replace(/\s+/g, '');
+        
+        // Маппинг альтернативных имен
+        const nameMap = {
+            'drowranger': 'drow',
+            'crystalmaiden': 'crystal'
+        };
+        
+        const heroId = nameMap[normalizedName] || normalizedName;
+        if (HERO_IMAGES[heroId]) {
+            return HERO_IMAGES[heroId];
+        }
+    }
+    
+    return '';
+}
+
 // Обновить визуализацию гладиатора в бою
 function updateBattleGladiator(elementId, gladiator, isEnemy) {
     const element = document.getElementById(elementId);
@@ -1082,16 +1153,24 @@ function updateBattleGladiator(elementId, gladiator, isEnemy) {
     
     const healthPercent = (gladiator.health / gladiator.maxHealth) * 100;
     const manaPercent = (gladiator.mana / gladiator.maxMana) * 100;
+    const heroImage = getHeroImage(gladiator);
     
     element.innerHTML = `
-        <div class="battle-gladiator-name">${gladiator.name}</div>
-        <div class="battle-health-bar">
-            <div class="battle-health-fill" style="width: ${healthPercent}%"></div>
-            <div class="battle-health-text">${Math.ceil(gladiator.health)}/${gladiator.maxHealth}</div>
-        </div>
-        <div class="battle-mana-bar">
-            <div class="battle-mana-fill" style="width: ${manaPercent}%"></div>
-            <div class="battle-mana-text">${Math.ceil(gladiator.mana)}/${gladiator.maxMana}</div>
+        <div class="battle-hero-container">
+            <div class="battle-hero-image-container ${isEnemy ? 'enemy' : 'player'}">
+                ${heroImage ? `<img src="${heroImage}" alt="${gladiator.name}" class="battle-hero-image" onerror="this.style.display='none'">` : ''}
+            </div>
+            <div class="battle-hero-info">
+                <div class="battle-gladiator-name">${gladiator.name}</div>
+                <div class="battle-health-bar">
+                    <div class="battle-health-fill" style="width: ${healthPercent}%"></div>
+                    <div class="battle-health-text">${Math.ceil(gladiator.health)}/${gladiator.maxHealth}</div>
+                </div>
+                <div class="battle-mana-bar">
+                    <div class="battle-mana-fill" style="width: ${manaPercent}%"></div>
+                    <div class="battle-mana-text">${Math.ceil(gladiator.mana)}/${gladiator.maxMana}</div>
+                </div>
+            </div>
         </div>
     `;
 }

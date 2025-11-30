@@ -133,12 +133,7 @@
         const defaultServerUrl = window.location.protocol + '//' + window.location.host;
         window.defaultServerUrl = defaultServerUrl;
         
-        // Делаем функцию доступной глобально для onclick
-        window.connectToRoom = function(roomId) {
-            if (window.gameState && window.gameState.connectToRoomFunc) {
-                window.gameState.connectToRoomFunc(roomId);
-            }
-        };
+        // Функция будет определена в game.js
     </script>
     <script src="game.js"></script>
 </body>

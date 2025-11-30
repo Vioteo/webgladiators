@@ -636,6 +636,7 @@ body {
 /* Визуализация боя */
 .battle-visualization {
     padding: 20px;
+    min-height: 300px;
 }
 
 .battle-visualization.hidden {
@@ -650,34 +651,126 @@ body {
     margin-bottom: 10px;
 }
 
+.battle-hero-container {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.battle-hero-image-container {
+    flex-shrink: 0;
+    width: 120px;
+    height: 120px;
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    background: rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+.battle-hero-image-container.player {
+    border-color: #4caf50;
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.5);
+}
+
+.battle-hero-image-container.enemy {
+    border-color: #f44336;
+    box-shadow: 0 0 20px rgba(244, 67, 54, 0.5);
+    transform: scaleX(-1); /* Отражаем врага */
+}
+
+.battle-hero-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    image-rendering: crisp-edges;
+    animation: heroIdle 2s ease-in-out infinite;
+}
+
+@keyframes heroIdle {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-3px);
+    }
+}
+
+.battle-hero-info {
+    flex: 1;
+    min-width: 0;
+}
+
 .battle-gladiator-name {
     font-size: 1.5em;
     font-weight: bold;
-    margin-bottom: 10px;
-    text-align: center;
+    margin-bottom: 15px;
+    text-align: left;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .battle-health-bar, .battle-mana-bar {
-    height: 30px;
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 5px;
-    margin: 8px 0;
+    height: 32px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 6px;
+    margin: 10px 0;
     position: relative;
     overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .battle-health-fill {
     height: 100%;
     background: linear-gradient(90deg, #4caf50 0%, #66bb6a 100%);
     transition: width 0.3s ease;
-    border-radius: 5px;
+    border-radius: 6px;
+    box-shadow: inset 0 2px 5px rgba(255, 255, 255, 0.3);
+    position: relative;
+}
+
+.battle-health-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
 }
 
 .battle-mana-fill {
     height: 100%;
     background: linear-gradient(90deg, #2196f3 0%, #42a5f5 100%);
     transition: width 0.3s ease;
-    border-radius: 5px;
+    border-radius: 6px;
+    box-shadow: inset 0 2px 5px rgba(255, 255, 255, 0.3);
+    position: relative;
+}
+
+.battle-mana-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
+    animation: shimmer 2s infinite;
 }
 
 .battle-health-text, .battle-mana-text {
