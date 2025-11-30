@@ -142,6 +142,37 @@ body {
     color: #ffd700;
 }
 
+.reconnect-option {
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(76, 175, 80, 0.2);
+    border: 2px solid rgba(76, 175, 80, 0.5);
+    border-radius: 10px;
+}
+
+.reconnect-info {
+    margin-bottom: 15px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 5px;
+}
+
+.reconnect-info strong {
+    display: block;
+    margin-bottom: 8px;
+    color: #4caf50;
+    font-size: 1.1em;
+}
+
+.reconnect-info div {
+    margin: 5px 0;
+    opacity: 0.9;
+}
+
+#clear-saved-btn {
+    margin-left: 10px;
+}
+
 .connection-form {
     display: flex;
     flex-direction: column;

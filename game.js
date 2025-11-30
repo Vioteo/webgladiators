@@ -253,6 +253,43 @@ const CARDS = {
     ]
 };
 
+// Сохранение состояния в localStorage
+function saveGameState() {
+    if (gameState.roomId && gameState.playerName) {
+        const savedState = {
+            playerName: gameState.playerName,
+            roomId: gameState.roomId,
+            timestamp: Date.now()
+        };
+        localStorage.setItem('webgladiators_state', JSON.stringify(savedState));
+    }
+}
+
+// Загрузка состояния из localStorage
+function loadGameState() {
+    try {
+        const saved = localStorage.getItem('webgladiators_state');
+        if (saved) {
+            const state = JSON.parse(saved);
+            // Проверяем, что сохраненное состояние не старше 24 часов
+            const maxAge = 24 * 60 * 60 * 1000; // 24 часа
+            if (Date.now() - state.timestamp < maxAge) {
+                return state;
+            } else {
+                localStorage.removeItem('webgladiators_state');
+            }
+        }
+    } catch (e) {
+        console.error('Ошибка загрузки состояния:', e);
+    }
+    return null;
+}
+
+// Очистка сохраненного состояния
+function clearSavedState() {
+    localStorage.removeItem('webgladiators_state');
+}
+
 // Игровое состояние
 let gameState = {
     socket: null,
@@ -288,6 +325,108 @@ function setupConnectionScreen() {
     document.getElementById('player-name').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') createRoom();
     });
+    
+    // Проверяем сохраненное состояние при загрузке
+    checkForReconnection();
+}
+
+// Проверка возможности переподключения
+function checkForReconnection() {
+    const savedState = loadGameState();
+    if (savedState) {
+        // Восстанавливаем имя игрока
+        const nameInput = document.getElementById('player-name');
+        if (nameInput) {
+            nameInput.value = savedState.playerName;
+        }
+        
+        // Показываем опцию переподключения
+        showReconnectionOption(savedState);
+    }
+}
+
+// Показать опцию переподключения
+function showReconnectionOption(savedState) {
+    const statusDiv = document.getElementById('connection-status');
+    if (!statusDiv) return;
+    
+    const reconnectDiv = document.createElement('div');
+    reconnectDiv.className = 'reconnect-option';
+    reconnectDiv.innerHTML = `
+        <div class="reconnect-info">
+            <strong>🔄 Обнаружена сохраненная игра</strong>
+            <div>Комната: ${savedState.roomId}</div>
+            <div>Игрок: ${savedState.playerName}</div>
+        </div>
+        <button id="reconnect-btn" class="btn btn-primary">Переподключиться к игре</button>
+        <button id="clear-saved-btn" class="btn btn-secondary btn-small">Начать новую игру</button>
+    `;
+    
+    statusDiv.appendChild(reconnectDiv);
+    
+    document.getElementById('reconnect-btn').addEventListener('click', () => {
+        reconnectToGame(savedState);
+    });
+    
+    document.getElementById('clear-saved-btn').addEventListener('click', () => {
+        clearSavedState();
+        reconnectDiv.remove();
+        showStatus('Сохраненное состояние очищено', 'info');
+    });
+}
+
+// Переподключение к сохраненной игре
+function reconnectToGame(savedState) {
+    if (!savedState.playerName || !savedState.roomId) {
+        showStatus('Ошибка: нет данных для переподключения', 'error');
+        return;
+    }
+    
+    gameState.playerName = savedState.playerName;
+    gameState.roomId = savedState.roomId;
+    
+    initSocketConnection();
+    
+    showStatus('Переподключение к игре...', 'info');
+    
+    // Если сокет уже подключен, сразу отправляем запрос
+    if (gameState.socket.connected) {
+        gameState.socket.emit('join-room', { 
+            roomId: savedState.roomId, 
+            playerName: savedState.playerName 
+        });
+    } else {
+        gameState.socket.once('connect', () => {
+            gameState.socket.emit('join-room', { 
+                roomId: savedState.roomId, 
+                playerName: savedState.playerName 
+            });
+        });
+    }
+    
+    // Обработка успешного переподключения
+    gameState.socket.once('joined-room', (roomId) => {
+        gameState.roomId = roomId;
+        showStatus('Переподключение успешно!', 'success');
+        refreshRoomsList();
+    });
+    
+    gameState.socket.once('reconnected', (data) => {
+        // Восстановление состояния будет обработано в setupSocketListeners
+        showStatus('✅ Игра восстановлена!', 'success');
+    });
+    
+    // Обработка ошибок
+    gameState.socket.once('error', (error) => {
+        showStatus(`Ошибка переподключения: ${error}`, 'error');
+        // Если комната не найдена, очищаем сохраненное состояние
+        if (error.includes('не найдена') || error.includes('заполнена')) {
+            clearSavedState();
+            setTimeout(() => {
+                checkForReconnection();
+            }, 1000);
+        }
+    });
 }
 
 // Инициализация подключения к серверу
@@ -318,6 +457,7 @@ function createRoom() {
     
     gameState.socket.once('room-created', (roomId) => {
         gameState.roomId = roomId;
+        saveGameState(); // Сохраняем состояние
         showStatus(`Комната создана! ID: ${roomId}. Ожидание второго игрока...`, 'success');
         document.getElementById('connection-status').innerHTML += `<br><strong>ID комнаты: ${roomId}</strong><br>Поделитесь этим ID с другом или дождитесь подключения через список комнат.`;
     });
@@ -356,6 +496,7 @@ function connectToRoom(roomId) {
     // Обработка успешного подключения
     gameState.socket.once('joined-room', (connectedRoomId) => {
         gameState.roomId = connectedRoomId;
+        saveGameState(); // Сохраняем состояние
         showStatus('Подключено к комнате!', 'success');
         refreshRoomsList(); // Обновляем список комнат
     });
@@ -366,10 +507,6 @@ function connectToRoom(roomId) {
         setTimeout(() => refreshRoomsList(), 1000);
     });
 }
-
-// Сохраняем функцию для глобального доступа
-window.gameState = window.gameState || {};
-window.gameState.connectToRoomFunc = connectToRoom;
 
 // Обновление списка комнат
 function refreshRoomsList() {
@@ -555,9 +692,11 @@ function setupSocketListeners() {
 }
 
 // Сохраняем функцию для глобального доступа (используется в onclick в HTML)
+// Важно: сохраняем ссылку на оригинальную функцию ДО присваивания в window
 if (typeof window !== 'undefined') {
+    const originalConnectToRoom = connectToRoom;
     window.connectToRoom = function(roomId) {
-        connectToRoom(roomId);
+        originalConnectToRoom(roomId);
     };
 }
 
@@ -1228,6 +1367,8 @@ function renderEffects(containerId, effects) {
 
 // Сброс игры
 function resetGame() {
+    gameState.roomId = null;
+    gameState.playerName = '';
     gameState.availableStyles = [];
     gameState.blockedStyles = [];
     gameState.selectedHero = null;
@@ -1238,6 +1379,8 @@ function resetGame() {
     gameState.lives = STARTING_LIVES;
     gameState.round = 1;
     gameState.isReady = false;
+    
+    clearSavedState(); // Очищаем сохраненное состояние
     
     // Скрываем визуализацию боя
     const battleViz = document.getElementById('battle-visualization');
@@ -1252,4 +1395,10 @@ function resetGame() {
     showScreen('connection');
     document.getElementById('log').innerHTML = '';
     document.getElementById('connection-status').textContent = '';
+    document.getElementById('player-name').value = '';
+    
+    // Проверяем возможность переподключения после сброса
+    setTimeout(() => {
+        checkForReconnection();
+    }, 100);
 }
