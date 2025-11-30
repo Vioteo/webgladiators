@@ -19,7 +19,7 @@
                 </div>
                 <div class="form-group">
                     <label>Адрес сервера:</label>
-                    <input type="text" id="server-url" value="http://localhost:3000" placeholder="http://localhost:3000">
+                    <input type="text" id="server-url" value="" placeholder="Автоматически определяется">
                 </div>
                 <button id="connect-btn" class="btn btn-primary">Подключиться</button>
                 <button id="create-room-btn" class="btn btn-secondary">Создать комнату</button>
@@ -102,6 +102,11 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Автоматическое определение URL сервера
+        const defaultServerUrl = window.location.protocol + '//' + window.location.host;
+        window.defaultServerUrl = defaultServerUrl;
+    </script>
     <script src="game.js"></script>
 </body>
 </html>

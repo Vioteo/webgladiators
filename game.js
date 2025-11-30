@@ -154,7 +154,7 @@ function setupConnectionScreen() {
 // Создание комнаты
 function createRoom() {
     const playerName = document.getElementById('player-name').value.trim();
-    const serverUrl = document.getElementById('server-url').value.trim() || 'http://localhost:3000';
+    const serverUrl = document.getElementById('server-url').value.trim() || window.defaultServerUrl || window.location.origin;
     
     if (!playerName) {
         showStatus('Введите имя игрока!', 'error');
@@ -181,7 +181,7 @@ function createRoom() {
 // Подключение к комнате
 function connectToRoom() {
     const playerName = document.getElementById('player-name').value.trim();
-    const serverUrl = document.getElementById('server-url').value.trim() || 'http://localhost:3000';
+    const serverUrl = document.getElementById('server-url').value.trim() || window.defaultServerUrl || window.location.origin;
     const roomId = prompt('Введите ID комнаты:');
     
     if (!playerName) {
