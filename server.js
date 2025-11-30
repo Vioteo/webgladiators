@@ -29,6 +29,50 @@ function generateRandomStyles() {
     return { available, blocked };
 }
 
+// Обновление прогресса по стилям
+function updateStyleProgress(player) {
+    player.styleProgress = {};
+    
+    // Подсчитываем купленные карты по стилям
+    player.cards.forEach(card => {
+        if (!player.styleProgress[card.style]) {
+            player.styleProgress[card.style] = {
+                total: 0,
+                byRarity: {
+                    common: 0,
+                    uncommon: 0,
+                    rare: 0,
+                    epic: 0,
+                    legendary: 0
+                }
+            };
+        }
+        player.styleProgress[card.style].total++;
+        player.styleProgress[card.style].byRarity[card.rarity]++;
+    });
+}
+
+// Функция для отправки списка комнат всем
+function broadcastRoomList() {
+    const roomList = Array.from(rooms.values())
+        .filter(room => {
+            // Показываем только комнаты, где есть активные игроки
+            return room.players.some(p => p.socket) && room.players.length < 2;
+        })
+        .map(room => ({
+            id: room.id,
+            players: room.players.filter(p => p.socket).length,
+            maxPlayers: 2,
+            gameState: room.gameState,
+            round: room.round,
+            playerNames: room.players.filter(p => p.socket).map(p => p.name),
+            createdAt: room.createdAt || 0
+        }))
+        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    
+    io.emit('room-list', roomList);
+}
+
 // Обработка подключений
 io.on('connection', (socket) => {
     console.log('Новое подключение:', socket.id);
@@ -47,21 +91,42 @@ io.on('connection', (socket) => {
                 gladiator: null,
                 ready: false,
                 lives: 100,
-                gold: 10,
+                gold: 100,
                 cards: [],
                 styleProgress: {} // Прогресс по стилям для расчета шансов
             }],
             gameState: 'waiting', // waiting, selecting, playing
             availableStyles: styles.available,
             blockedStyles: styles.blocked,
-            round: 1
+            round: 1,
+            createdAt: Date.now()
         };
 
         rooms.set(roomId, room);
         socket.join(roomId);
         socket.emit('room-created', roomId);
         socket.emit('game-state', 'waiting');
+        
+        // Отправляем обновленный список комнат всем
+        broadcastRoomList();
+        
         console.log(`Комната ${roomId} создана игроком ${playerName}`);
+    });
+    
+    // Запрос списка комнат
+    socket.on('get-rooms', () => {
+        const roomList = Array.from(rooms.values())
+            .filter(room => room.players.length < 2)
+            .map(room => ({
+                id: room.id,
+                players: room.players.length,
+                maxPlayers: 2,
+                gameState: room.gameState,
+                round: room.round
+            }))
+            .sort((a, b) => b.createdAt - a.createdAt);
+        
+        socket.emit('room-list', roomList);
     });
 
     socket.on('join-room', (data) => {
@@ -78,27 +143,54 @@ io.on('connection', (socket) => {
             return;
         }
 
-        room.players.push({
-            id: socket.id,
-            name: playerName,
-            socket: socket,
-            hero: null,
-            gladiator: null,
-            ready: false,
-            lives: 100,
-            gold: 10,
-            cards: [],
-            styleProgress: {} // Прогресс по стилям для расчета шансов
-        });
+        // Проверяем переподключение
+        const existingPlayer = room.players.find(p => p.name === playerName);
+        
+        if (existingPlayer && existingPlayer.id !== socket.id) {
+            // Переподключение - восстанавливаем состояние
+            existingPlayer.id = socket.id;
+            existingPlayer.socket = socket;
+            socket.emit('reconnected', {
+                gameState: room.gameState,
+                hero: existingPlayer.hero,
+                gladiator: existingPlayer.gladiator,
+                cards: existingPlayer.cards,
+                gold: existingPlayer.gold,
+                lives: existingPlayer.lives,
+                round: room.round,
+                availableStyles: room.availableStyles,
+                blockedStyles: room.blockedStyles
+            });
+            console.log(`Игрок ${playerName} переподключился`);
+        } else {
+            room.players.push({
+                id: socket.id,
+                name: playerName,
+                socket: socket,
+                hero: null,
+                gladiator: null,
+                ready: false,
+                lives: 100,
+                gold: 100,
+                cards: [],
+                styleProgress: {},
+                playerId: socket.id
+            });
+        }
 
         socket.join(roomId);
         socket.emit('joined-room', roomId);
         
+        // Отправляем обновленный список комнат
+        broadcastRoomList();
+        
         // Когда оба игрока подключены, отправляем стили
-        io.to(roomId).emit('styles-selected', {
-            styles: room.availableStyles,
-            blockedStyles: room.blockedStyles
-        });
+        if (room.players.length === 2) {
+            io.to(roomId).emit('styles-selected', {
+                styles: room.availableStyles,
+                blockedStyles: room.blockedStyles
+            });
+        }
         
         console.log(`Игрок ${playerName} присоединился к комнате ${roomId}`);
     });
@@ -152,8 +244,10 @@ io.on('connection', (socket) => {
             player.cards = cards || [];
             player.ready = true;
             
-            // Обновляем прогресс по стилям для расчета шансов
-            updateStyleProgress(player);
+            // Обновляем прогресс по стилям для расчета шансов (если карты есть)
+            if (player.cards.length > 0) {
+                updateStyleProgress(player);
+            }
             console.log(`Игрок ${player.name} готов к бою`);
             
             io.to(roomId).emit('player-ready-status', {
@@ -300,12 +394,12 @@ function startBattle(room) {
         player1.gladiator.currentHealth = Math.min(gladiator1.currentHealth, player1.gladiator.maxHealth);
         player2.gladiator.currentHealth = Math.min(gladiator2.currentHealth, player2.gladiator.maxHealth);
         
-        // Расчет золота с бонусом за не потраченное
+        // Расчет золота с бонусом за не потраченное (за каждые 5 золота +1)
         const bonusGold1 = Math.floor((player1.gold || 0) / 5);
         const bonusGold2 = Math.floor((player2.gold || 0) / 5);
         
-        player1.gold = (player1.gold || 10) + (winner === 1 ? 5 : 3) + bonusGold1;
-        player2.gold = (player2.gold || 10) + (winner === 2 ? 5 : 3) + bonusGold2;
+        player1.gold = (player1.gold || 100) + (winner === 1 ? 5 : 3) + bonusGold1;
+        player2.gold = (player2.gold || 100) + (winner === 2 ? 5 : 3) + bonusGold2;
 
         const result = {
             winner: winnerPlayer.id,
@@ -339,6 +433,9 @@ function startBattle(room) {
                     p.gladiator = null;
                     p.ready = false;
                     p.lives = 100;
+                    p.gold = 100;
+                    p.cards = [];
+                    p.styleProgress = {};
                 });
                 room.round = 1;
                 const styles = generateRandomStyles();
@@ -485,9 +582,25 @@ function calculateDamage(attacker, defender) {
     
     // Эффекты карточек
     if (attacker.effects) {
+        // Критический урон
         if (attacker.effects.critChance && Math.random() < (attacker.effects.critChance / 100)) {
             const critMultiplier = 2 + ((attacker.effects.critDamage || 0) / 100);
             damage *= critMultiplier;
+        }
+        
+        // Урон мороза
+        if (attacker.effects.frostDamage) {
+            damage += attacker.effects.frostDamage;
+        }
+        
+        // Урон при ярости
+        if (attacker.effects.furyDamage && attacker.furyStacks && attacker.furyStacks > 0) {
+            damage += attacker.effects.furyDamage;
+        }
+        
+        // Урон ульты (если используется активная способность)
+        if (attacker.effects.ultDamage && attacker.active && attacker.active.name.includes('Лагуна') || attacker.active.name.includes('Finger')) {
+            damage += attacker.effects.ultDamage;
         }
     }
     
@@ -495,6 +608,17 @@ function calculateDamage(attacker, defender) {
     const armor = defender.armor || 0;
     const armorReduction = armor * 0.06 / (1 + armor * 0.06);
     damage = damage * (1 - armorReduction);
+    
+    // Отражение урона от щита
+    if (defender.effects && defender.effects.reflect) {
+        const reflectedDamage = damage * (defender.effects.reflect / 100);
+        attacker.currentHealth = Math.max(0, attacker.currentHealth - reflectedDamage);
+    }
+    
+    // Блок от щита
+    if (defender.effects && defender.effects.shieldBlock) {
+        damage = Math.max(0, damage - defender.effects.shieldBlock);
+    }
     
     return Math.max(1, Math.floor(damage));
 }
@@ -567,8 +691,25 @@ function applyPassiveEffects(gladiator, target) {
     
     // Гниение (Pudge) - периодический урон
     if (gladiator.passive && gladiator.passive.name === 'Гниение') {
-        target.currentHealth = Math.max(0, target.currentHealth - 10);
-        logMessage = `${gladiator.name}: Гниение наносит 10 урона ${target.name}`;
+        const rotDamage = 10 + ((gladiator.effects && gladiator.effects.poisonDamage) || 0);
+        target.currentHealth = Math.max(0, target.currentHealth - rotDamage);
+        logMessage = `${gladiator.name}: Гниение наносит ${rotDamage} урона ${target.name}`;
+    }
+    
+    // Яд (эффект карточек)
+    if (target.effects && target.effects.poisonStacks && target.poisonStacks > 0) {
+        const poisonDamage = (target.effects.poisonDamage || 0) * target.poisonStacks;
+        target.currentHealth = Math.max(0, target.currentHealth - poisonDamage);
+        if (poisonDamage > 0) {
+            logMessage = `${target.name}: Яд наносит ${poisonDamage} урона`;
+        }
+    }
+    
+    // Регенерация здоровья (эффект карточек)
+    if (gladiator.effects && gladiator.effects.regen && gladiator.currentHealth < gladiator.maxHealth) {
+        const regenAmount = gladiator.effects.regen;
+        gladiator.currentHealth = Math.min(gladiator.maxHealth, gladiator.currentHealth + regenAmount);
+        logMessage = `${gladiator.name}: Регенерация +${regenAmount} HP`;
     }
     
     return logMessage;
@@ -726,7 +867,32 @@ function getEffectsDisplay(gladiator) {
 }
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+
+// Обработка корневого маршрута
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Обработка ошибок
+app.use((err, req, res, next) => {
+    console.error('Ошибка сервера:', err);
+    res.status(500).send('Внутренняя ошибка сервера');
+});
+
+server.listen(PORT, '0.0.0.0', () => {
     console.log(`Сервер запущен на порту ${PORT}`);
     console.log(`Откройте http://localhost:${PORT} в браузере`);
+});
+
+// Обработка ошибок при запуске
+server.on('error', (err) => {
+    console.error('Ошибка при запуске сервера:', err);
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('Необработанное исключение:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Необработанный rejection:', reason);
 });

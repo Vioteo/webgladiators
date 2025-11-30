@@ -17,13 +17,17 @@
                     <label>Имя игрока:</label>
                     <input type="text" id="player-name" placeholder="Введите ваше имя" maxlength="20">
                 </div>
-                <div class="form-group">
-                    <label>Адрес сервера:</label>
-                    <input type="text" id="server-url" value="" placeholder="Автоматически определяется">
-                </div>
-                <button id="connect-btn" class="btn btn-primary">Подключиться</button>
-                <button id="create-room-btn" class="btn btn-secondary">Создать комнату</button>
+                <button id="create-room-btn" class="btn btn-primary">Создать комнату</button>
             </div>
+            
+            <div class="rooms-section">
+                <h3>Доступные комнаты</h3>
+                <button id="refresh-rooms-btn" class="btn btn-secondary btn-small">Обновить список</button>
+                <div id="rooms-list" class="rooms-list">
+                    <div class="loading-rooms">Загрузка комнат...</div>
+                </div>
+            </div>
+            
             <div id="connection-status" class="status-message"></div>
         </div>
     </div>
@@ -128,6 +132,13 @@
         // Автоматическое определение URL сервера
         const defaultServerUrl = window.location.protocol + '//' + window.location.host;
         window.defaultServerUrl = defaultServerUrl;
+        
+        // Делаем функцию доступной глобально для onclick
+        window.connectToRoom = function(roomId) {
+            if (window.gameState && window.gameState.connectToRoomFunc) {
+                window.gameState.connectToRoomFunc(roomId);
+            }
+        };
     </script>
     <script src="game.js"></script>
 </body>

@@ -1,7 +1,8 @@
 // Константы
 const STARTING_LIVES = 100;
-const STARTING_GOLD = 10;
+const STARTING_GOLD = 100;
 const SHOP_SIZE = 5;
+const MAX_CARD_LEVEL = 5; // Максимальный уровень карточки
 
 // Стили (секты)
 const ALL_STYLES = [
@@ -265,17 +266,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Настройка экрана подключения
 function setupConnectionScreen() {
-    document.getElementById('connect-btn').addEventListener('click', connectToRoom);
     document.getElementById('create-room-btn').addEventListener('click', createRoom);
+    document.getElementById('refresh-rooms-btn').addEventListener('click', refreshRoomsList);
     document.getElementById('ready-btn').addEventListener('click', setReady);
     document.getElementById('not-ready-btn').addEventListener('click', setNotReady);
     document.getElementById('refresh-shop-btn').addEventListener('click', refreshShop);
+    
+    // Enter для создания комнаты
+    document.getElementById('player-name').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') createRoom();
+    });
+}
+
+// Инициализация подключения к серверу
+function initSocketConnection() {
+    if (!gameState.socket || !gameState.socket.connected) {
+        const serverUrl = window.defaultServerUrl || window.location.origin;
+        gameState.socket = io(serverUrl);
+        setupSocketListeners();
+    }
 }
 
 // Создание комнаты
 function createRoom() {
     const playerName = document.getElementById('player-name').value.trim();
-    const serverUrl = document.getElementById('server-url').value.trim() || window.defaultServerUrl || window.location.origin;
     
     if (!playerName) {
         showStatus('Введите имя игрока!', 'error');
@@ -283,27 +297,23 @@ function createRoom() {
     }
     
     gameState.playerName = playerName;
-    gameState.socket = io(serverUrl);
+    initSocketConnection();
     
-    setupSocketListeners();
-    
-    gameState.socket.on('connect', () => {
-        showStatus('Подключение...', 'info');
+    gameState.socket.once('connect', () => {
+        showStatus('Создание комнаты...', 'info');
         gameState.socket.emit('create-room', playerName);
     });
     
-    gameState.socket.on('room-created', (roomId) => {
+    gameState.socket.once('room-created', (roomId) => {
         gameState.roomId = roomId;
-        showStatus(`Комната создана! ID: ${roomId}. Поделитесь этим ID с другом.`, 'success');
-        document.getElementById('connection-status').innerHTML += `<br><strong>ID комнаты: ${roomId}</strong>`;
+        showStatus(`Комната создана! ID: ${roomId}. Ожидание второго игрока...`, 'success');
+        document.getElementById('connection-status').innerHTML += `<br><strong>ID комнаты: ${roomId}</strong><br>Поделитесь этим ID с другом или дождитесь подключения через список комнат.`;
     });
 }
 
-// Подключение к комнате
-function connectToRoom() {
+// Подключение к комнате (сохраняем ссылку для глобального доступа)
+function connectToRoom(roomId) {
     const playerName = document.getElementById('player-name').value.trim();
-    const serverUrl = document.getElementById('server-url').value.trim() || window.defaultServerUrl || window.location.origin;
-    const roomId = prompt('Введите ID комнаты:');
     
     if (!playerName) {
         showStatus('Введите имя игрока!', 'error');
@@ -311,32 +321,88 @@ function connectToRoom() {
     }
     
     if (!roomId) {
-        showStatus('Введите ID комнаты!', 'error');
+        showStatus('Выберите комнату из списка!', 'error');
         return;
     }
     
     gameState.playerName = playerName;
     gameState.roomId = roomId;
-    gameState.socket = io(serverUrl);
+    initSocketConnection();
     
-    setupSocketListeners();
-    
-    gameState.socket.on('connect', () => {
+    gameState.socket.once('connect', () => {
         showStatus('Подключение к комнате...', 'info');
         gameState.socket.emit('join-room', { roomId, playerName });
     });
     
-    gameState.socket.on('joined-room', (roomId) => {
+    gameState.socket.once('joined-room', (roomId) => {
         showStatus('Подключено к комнате!', 'success');
     });
     
-    gameState.socket.on('error', (error) => {
+    gameState.socket.once('error', (error) => {
         showStatus(`Ошибка: ${error}`, 'error');
+        setTimeout(() => refreshRoomsList(), 1000);
     });
+}
+
+// Сохраняем функцию для глобального доступа
+window.gameState = window.gameState || {};
+window.gameState.connectToRoomFunc = connectToRoom;
+
+// Обновление списка комнат
+function refreshRoomsList() {
+    initSocketConnection();
+    
+    gameState.socket.emit('get-rooms');
+}
+
+// Рендеринг списка комнат
+function renderRoomsList(rooms) {
+    const roomsListContainer = document.getElementById('rooms-list');
+    if (!roomsListContainer) return;
+    
+    if (rooms.length === 0) {
+        roomsListContainer.innerHTML = '<div class="no-rooms">Нет доступных комнат. Создайте свою!</div>';
+        return;
+    }
+    
+    roomsListContainer.innerHTML = rooms.map(room => `
+        <div class="room-item">
+            <div class="room-info">
+                <div class="room-id">ID: <strong>${room.id}</strong></div>
+                <div class="room-players">Игроков: ${room.players}/${room.maxPlayers}</div>
+                ${room.playerNames && room.playerNames.length > 0 ? 
+                    `<div class="room-names">${room.playerNames.join(', ')}</div>` : ''}
+                <div class="room-status">Статус: ${getRoomStatusText(room.gameState)}</div>
+            </div>
+            <button class="btn btn-primary btn-small" onclick="connectToRoom('${room.id}')" ${room.players >= room.maxPlayers ? 'disabled' : ''}>
+                ${room.players >= room.maxPlayers ? 'Полная' : 'Подключиться'}
+            </button>
+        </div>
+    `).join('');
+}
+
+function getRoomStatusText(gameState) {
+    const states = {
+        'waiting': 'Ожидание игроков',
+        'selecting': 'Выбор героев',
+        'preparing': 'Подготовка',
+        'playing': 'Идет бой'
+    };
+    return states[gameState] || gameState;
 }
 
 // Настройка обработчиков Socket.IO
 function setupSocketListeners() {
+    // Получение списка комнат
+    gameState.socket.on('room-list', (rooms) => {
+        renderRoomsList(rooms);
+    });
+    
+    // Автоматически запрашиваем список комнат при подключении
+    gameState.socket.on('connect', () => {
+        refreshRoomsList();
+    });
+    
     gameState.socket.on('styles-selected', (data) => {
         gameState.availableStyles = data.styles;
         gameState.blockedStyles = data.blockedStyles || [];
@@ -772,20 +838,67 @@ function buyCard(shopIndex) {
 }
 
 // Применение эффекта карточки
-function applyCardEffect(card) {
+function applyCardEffect(card, silent = false) {
     const effect = card.effect;
     
+    if (!gameState.gladiator) {
+        console.error('Гладиатор не создан!');
+        return;
+    }
+    
+    // Если карточка имеет уровень больше 1, эффекты уже масштабированы
+    const level = card.level || 1;
+    
+    // Применяем базовые характеристики
     if (effect.health) {
         gameState.gladiator.maxHealth += effect.health;
         gameState.gladiator.currentHealth += effect.health;
+        if (!silent) addLog(`+${effect.health} к здоровью!`, 'heal');
     }
-    if (effect.armor) gameState.gladiator.armor += effect.armor;
-    if (effect.damage) gameState.gladiator.damage += effect.damage;
-    if (effect.attackSpeed) gameState.gladiator.attackSpeed += effect.attackSpeed / 100;
+    if (effect.armor) {
+        gameState.gladiator.armor += effect.armor;
+        if (!silent) addLog(`+${effect.armor} к броне!`, 'info');
+    }
+    if (effect.damage) {
+        gameState.gladiator.damage += effect.damage;
+        if (!silent) addLog(`+${effect.damage} к урону!`, 'info');
+    }
+    if (effect.attackSpeed) {
+        gameState.gladiator.attackSpeed += effect.attackSpeed / 100;
+        if (!silent) addLog(`+${effect.attackSpeed}% к скорости атаки!`, 'info');
+    }
     
-    // Сохраняем эффекты для боя
+    // Сохраняем все эффекты для боя (включая специальные)
     if (!gameState.gladiator.effects) gameState.gladiator.effects = {};
-    Object.assign(gameState.gladiator.effects, effect);
+    
+    // Объединяем эффекты (для стаков некоторых эффектов)
+    Object.keys(effect).forEach(key => {
+        if (gameState.gladiator.effects[key] && typeof gameState.gladiator.effects[key] === 'number') {
+            gameState.gladiator.effects[key] += effect[key];
+        } else {
+            gameState.gladiator.effects[key] = effect[key];
+        }
+    });
+    
+    if (!silent) {
+        const levelText = level > 1 ? ` (ур. ${level})` : '';
+        addLog(`Карточка "${card.name}"${levelText} применена!`, 'info');
+    }
+}
+
+// Получение предпросмотра эффекта карточки
+function getCardEffectPreview(card) {
+    const effects = [];
+    const effect = card.effect;
+    
+    if (effect.health) effects.push(`+${effect.health} HP`);
+    if (effect.armor) effects.push(`+${effect.armor} ARM`);
+    if (effect.damage) effects.push(`+${effect.damage} DMG`);
+    if (effect.attackSpeed) effects.push(`+${effect.attackSpeed}% ASPD`);
+    if (effect.critChance) effects.push(`+${effect.critChance}% Крит`);
+    if (effect.slow) effects.push(`+${effect.slow}% Замедление`);
+    
+    return effects.length > 0 ? ` (${effects.join(', ')})` : '';
 }
 
 // Рендеринг гладиатора
@@ -827,11 +940,17 @@ function renderGladiator() {
             <div class="gladiator-cards">
                 <h4>Карточки (${gameState.cards.length}):</h4>
                 <div class="cards-list">
-                    ${gameState.cards.map(card => `
-                        <div class="owned-card">
-                            <span style="color: ${RARITY[card.rarity].color}">${card.name}</span>
+                    ${gameState.cards.length > 0 ? gameState.cards.map(card => {
+                        const effectPreview = getCardEffectPreview(card);
+                        const level = card.level || 1;
+                        const levelText = level > 1 ? ` [${level}]` : '';
+                        return `
+                        <div class="owned-card" style="border-left: 3px solid ${RARITY[card.rarity].color};">
+                            <span style="color: ${RARITY[card.rarity].color}; font-weight: bold;">${card.name}${levelText}</span>
+                            ${effectPreview ? `<div class="card-effect-preview">${effectPreview}</div>` : ''}
                         </div>
-                    `).join('')}
+                    `;
+                    }).join('') : '<div class="no-cards">Нет карточек</div>'}
                 </div>
             </div>
         </div>
