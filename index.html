@@ -68,7 +68,14 @@
             <div class="main-content single-gladiator">
                 <!-- Левая панель: Гладиатор -->
                 <div class="left-panel">
-                    <div id="gladiator" class="gladiator-section"></div>
+                    <div id="gladiator" class="gladiator-section">
+                        <div id="battle-visualization" class="battle-visualization hidden">
+                            <div class="battle-gladiator">
+                                <div id="player-battle-info" class="battle-gladiator-info"></div>
+                                <div id="player-effects" class="effects-display"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Центральная панель: Магазин -->
@@ -91,7 +98,13 @@
                 <!-- Правая панель: Противник -->
                 <div class="right-panel">
                     <div id="enemy-gladiator" class="gladiator-section enemy">
-                        <div class="gladiator-display">
+                        <div id="enemy-battle-visualization" class="battle-visualization hidden">
+                            <div class="battle-gladiator">
+                                <div id="enemy-battle-info" class="battle-gladiator-info"></div>
+                                <div id="enemy-effects" class="effects-display"></div>
+                            </div>
+                        </div>
+                        <div id="enemy-gladiator-normal" class="gladiator-display">
                             <h3>Противник</h3>
                             <div class="gladiator-stats">
                                 <div>Ожидание...</div>

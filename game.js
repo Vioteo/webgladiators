@@ -374,9 +374,23 @@ function setupSocketListeners() {
         }
     });
     
-    gameState.socket.on('battle-started', () => {
+    gameState.socket.on('battle-started', (data) => {
         addLog('=== БОЙ НАЧАЛСЯ ===', 'info');
         document.getElementById('battle-status').textContent = 'Бой идет...';
+        
+        // Показываем визуализацию боя
+        showBattleVisualization(data);
+        
+        // Скрываем обычное отображение гладиаторов
+        const normalDisplay = document.getElementById('gladiator').querySelector('.gladiator-display');
+        const enemyNormal = document.getElementById('enemy-gladiator-normal');
+        if (normalDisplay) normalDisplay.style.display = 'none';
+        if (enemyNormal) enemyNormal.style.display = 'none';
+    });
+    
+    // Обработка обновлений боя (эффекты, здоровье, мана)
+    gameState.socket.on('battle-update', (update) => {
+        updateBattleVisualization(update);
     });
     
     gameState.socket.on('battle-result', (result) => {
@@ -541,37 +555,161 @@ function selectHero(hero) {
     }, 500);
 }
 
+// Расчет прогресса по стилям
+function getStyleProgress() {
+    const progress = {};
+    
+    gameState.cards.forEach(card => {
+        if (!progress[card.style]) {
+            progress[card.style] = {
+                total: 0,
+                byRarity: {
+                    common: 0,
+                    uncommon: 0,
+                    rare: 0,
+                    epic: 0,
+                    legendary: 0
+                }
+            };
+        }
+        progress[card.style].total++;
+        progress[card.style].byRarity[card.rarity]++;
+    });
+    
+    return progress;
+}
+
+// Расчет шансов на карты по стилю
+function calculateRarityChances(styleProgress, style) {
+    const progress = styleProgress[style] || { total: 0, byRarity: {} };
+    const cardsBought = progress.total;
+    
+    // Базовые шансы (только common доступен изначально)
+    let chances = {
+        common: 100,
+        uncommon: 0,
+        rare: 0,
+        epic: 0,
+        legendary: 0
+    };
+    
+    // Каждая купленная карта стиля увеличивает шансы на более редкие
+    if (cardsBought >= 1) {
+        // Первая карта открывает uncommon с шансом 10% + 5% за каждую следующую
+        chances.uncommon = Math.min(50, 10 + (cardsBought - 1) * 5);
+        chances.common = 100 - chances.uncommon;
+    }
+    
+    if (cardsBought >= 2) {
+        // Вторая карта открывает rare с шансом 5% + 3% за каждую следующую
+        const rareChance = Math.min(30, 5 + (cardsBought - 2) * 3);
+        const remaining = 100 - chances.uncommon;
+        chances.rare = Math.floor((remaining * rareChance) / 100);
+        chances.common = 100 - chances.uncommon - chances.rare;
+    }
+    
+    if (cardsBought >= 4) {
+        // Четвертая карта открывает epic с шансом 3% + 2% за каждую следующую
+        const epicChance = Math.min(20, 3 + (cardsBought - 4) * 2);
+        const remaining = 100 - chances.uncommon - chances.rare;
+        chances.epic = Math.floor((remaining * epicChance) / 100);
+        chances.common = 100 - chances.uncommon - chances.rare - chances.epic;
+    }
+    
+    if (cardsBought >= 6) {
+        // Шестая карта открывает legendary с шансом 2% + 1% за каждую следующую
+        const legendaryChance = Math.min(10, 2 + (cardsBought - 6) * 1);
+        const remaining = 100 - chances.uncommon - chances.rare - chances.epic;
+        chances.legendary = Math.floor((remaining * legendaryChance) / 100);
+        chances.common = 100 - chances.uncommon - chances.rare - chances.epic - chances.legendary;
+    }
+    
+    // Нормализуем чтобы сумма была 100
+    const sum = chances.common + chances.uncommon + chances.rare + chances.epic + chances.legendary;
+    if (sum !== 100) {
+        chances.common += (100 - sum);
+    }
+    
+    return chances;
+}
+
 // Генерация магазина
 function generateShop() {
     gameState.shop = [];
+    const styleProgress = getStyleProgress();
     
     for (let i = 0; i < SHOP_SIZE; i++) {
         // Выбираем случайный доступный стиль
         const style = gameState.availableStyles[Math.floor(Math.random() * gameState.availableStyles.length)];
         const styleCards = CARDS[style];
         
-        // Выбираем случайную карточку с учетом редкости
-        const rarityWeights = {
-            common: 50,
-            uncommon: 30,
-            rare: 15,
-            epic: 4,
-            legendary: 1
-        };
+        // Получаем шансы для этого стиля на основе купленных карт
+        const chances = calculateRarityChances(styleProgress, style);
         
-        const weightedCards = [];
-        styleCards.forEach(card => {
-            const weight = rarityWeights[card.rarity];
-            for (let j = 0; j < weight; j++) {
-                weightedCards.push({ ...card, style });
+        // Создаем взвешенный список редкостей
+        const rarityPool = [];
+        Object.keys(chances).forEach(rarity => {
+            for (let j = 0; j < chances[rarity]; j++) {
+                rarityPool.push(rarity);
             }
         });
         
-        const randomCard = weightedCards[Math.floor(Math.random() * weightedCards.length)];
-        gameState.shop.push(randomCard);
+        // Выбираем случайную редкость
+        const selectedRarity = rarityPool[Math.floor(Math.random() * rarityPool.length)];
+        
+        // Получаем карты этого стиля с выбранной редкостью
+        const cardsWithRarity = styleCards.filter(card => card.rarity === selectedRarity);
+        
+        if (cardsWithRarity.length > 0) {
+            const randomCard = cardsWithRarity[Math.floor(Math.random() * cardsWithRarity.length)];
+            gameState.shop.push({ ...randomCard, style });
+        } else {
+            // Fallback на common если нет карт нужной редкости
+            const commonCards = styleCards.filter(card => card.rarity === 'common');
+            if (commonCards.length > 0) {
+                const randomCard = commonCards[Math.floor(Math.random() * commonCards.length)];
+                gameState.shop.push({ ...randomCard, style });
+            }
+        }
     }
     
     renderShop();
+    renderRarityChances(styleProgress);
+}
+
+// Отображение шансов на редкие карты
+function renderRarityChances(styleProgress) {
+    const stylesContainer = document.getElementById('available-styles');
+    if (!stylesContainer) return;
+    
+    let infoHTML = '<div class="styles-info"><strong>Доступные стили:</strong> ';
+    infoHTML += gameState.availableStyles.map(s => {
+        const styleInfo = ALL_STYLES.find(st => st.id === s);
+        return `<span style="color: ${styleInfo?.color || '#fff'}">${styleInfo?.name || s}</span>`;
+    }).join(', ');
+    infoHTML += '</div>';
+    
+    // Добавляем информацию о шансах на редкие карты
+    infoHTML += '<div class="rarity-chances"><strong>Шансы на редкие карты:</strong><br>';
+    gameState.availableStyles.forEach(style => {
+        const progress = styleProgress[style] || { total: 0 };
+        const chances = calculateRarityChances(styleProgress, style);
+        const styleInfo = ALL_STYLES.find(st => st.id === style);
+        
+        if (progress.total > 0 || chances.uncommon > 0 || chances.rare > 0 || chances.epic > 0 || chances.legendary > 0) {
+            infoHTML += `<div class="style-chance"><span style="color: ${styleInfo?.color || '#fff'}">${styleInfo?.name || style}</span> (куплено: ${progress.total}): `;
+            const chanceParts = [];
+            if (chances.uncommon > 0) chanceParts.push(`Необычная: ${chances.uncommon}%`);
+            if (chances.rare > 0) chanceParts.push(`Редкая: ${chances.rare}%`);
+            if (chances.epic > 0) chanceParts.push(`Эпическая: ${chances.epic}%`);
+            if (chances.legendary > 0) chanceParts.push(`Легендарная: ${chances.legendary}%`);
+            infoHTML += chanceParts.join(', ') || 'Только обычные';
+            infoHTML += '</div>';
+        }
+    });
+    infoHTML += '</div>';
+    
+    stylesContainer.innerHTML = infoHTML;
 }
 
 // Рендеринг магазина
@@ -606,16 +744,6 @@ function renderShop() {
         
         shopContainer.appendChild(cardElement);
     });
-    
-    // Показываем доступные стили
-    const stylesContainer = document.getElementById('available-styles');
-    if (stylesContainer) {
-        const availableStylesText = gameState.availableStyles.map(s => {
-            const styleInfo = ALL_STYLES.find(st => st.id === s);
-            return `<span style="color: ${styleInfo?.color || '#fff'}">${styleInfo?.name || s}</span>`;
-        }).join(', ');
-        stylesContainer.innerHTML = `<div class="styles-info"><strong>Доступные стили:</strong> ${availableStylesText}</div>`;
-    }
 }
 
 // Покупка карточки
@@ -633,9 +761,12 @@ function buyCard(shopIndex) {
     applyCardEffect(card);
     
     gameState.shop.splice(shopIndex, 1);
-    addLog(`Куплена карточка: ${card.name}`, 'info');
+    addLog(`Куплена карточка: ${card.name} (${RARITY[card.rarity].name})`, 'info');
     
+    // Обновляем отображение с новыми шансами
+    const styleProgress = getStyleProgress();
     renderShop();
+    renderRarityChances(styleProgress);
     renderGladiator();
     updateUI();
 }
@@ -808,6 +939,95 @@ function addLog(message, type = 'info') {
     logContainer.scrollTop = logContainer.scrollHeight;
 }
 
+// Показать визуализацию боя
+function showBattleVisualization(data) {
+    const battleViz = document.getElementById('battle-visualization');
+    const enemyBattleViz = document.getElementById('enemy-battle-visualization');
+    
+    if (battleViz) battleViz.classList.remove('hidden');
+    if (enemyBattleViz) enemyBattleViz.classList.remove('hidden');
+    
+    // Определяем какой гладиатор наш
+    const isPlayer1 = data.gladiator1.name === gameState.gladiator?.name;
+    const playerGlad = isPlayer1 ? data.gladiator1 : data.gladiator2;
+    const enemyGlad = isPlayer1 ? data.gladiator2 : data.gladiator1;
+    
+    updateBattleGladiator('player-battle-info', playerGlad, false);
+    updateBattleGladiator('enemy-battle-info', enemyGlad, true);
+}
+
+// Обновить визуализацию гладиатора в бою
+function updateBattleGladiator(elementId, gladiator, isEnemy) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    const healthPercent = (gladiator.health / gladiator.maxHealth) * 100;
+    const manaPercent = (gladiator.mana / gladiator.maxMana) * 100;
+    
+    element.innerHTML = `
+        <div class="battle-gladiator-name">${gladiator.name}</div>
+        <div class="battle-health-bar">
+            <div class="battle-health-fill" style="width: ${healthPercent}%"></div>
+            <div class="battle-health-text">${Math.ceil(gladiator.health)}/${gladiator.maxHealth}</div>
+        </div>
+        <div class="battle-mana-bar">
+            <div class="battle-mana-fill" style="width: ${manaPercent}%"></div>
+            <div class="battle-mana-text">${Math.ceil(gladiator.mana)}/${gladiator.maxMana}</div>
+        </div>
+    `;
+}
+
+// Обновить визуализацию боя
+function updateBattleVisualization(update) {
+    // Определяем какой гладиатор наш
+    const isPlayer1 = update.gladiator1.name === gameState.gladiator?.name || 
+                     update.gladiator1.name === gameState.selectedHero?.name;
+    
+    const playerGlad = isPlayer1 ? update.gladiator1 : update.gladiator2;
+    const enemyGlad = isPlayer1 ? update.gladiator2 : update.gladiator1;
+    
+    updateBattleGladiator('player-battle-info', playerGlad, false);
+    updateBattleGladiator('enemy-battle-info', enemyGlad, true);
+    
+    // Обновляем эффекты
+    renderEffects('player-effects', playerGlad.effects || { positive: [], negative: [] });
+    renderEffects('enemy-effects', enemyGlad.effects || { positive: [], negative: [] });
+}
+
+// Рендеринг эффектов
+function renderEffects(containerId, effects) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    // Положительные эффекты
+    if (effects.positive && effects.positive.length > 0) {
+        const positiveDiv = document.createElement('div');
+        positiveDiv.className = 'effects-group positive';
+        effects.positive.forEach(effect => {
+            const effectEl = document.createElement('div');
+            effectEl.className = 'effect-item';
+            effectEl.innerHTML = `<span class="effect-icon">${effect.icon}</span><span class="effect-name">${effect.name}</span><span class="effect-stacks">x${effect.stacks}</span>`;
+            positiveDiv.appendChild(effectEl);
+        });
+        container.appendChild(positiveDiv);
+    }
+    
+    // Негативные эффекты
+    if (effects.negative && effects.negative.length > 0) {
+        const negativeDiv = document.createElement('div');
+        negativeDiv.className = 'effects-group negative';
+        effects.negative.forEach(effect => {
+            const effectEl = document.createElement('div');
+            effectEl.className = 'effect-item';
+            effectEl.innerHTML = `<span class="effect-icon">${effect.icon}</span><span class="effect-name">${effect.name}</span><span class="effect-stacks">x${effect.stacks}</span>`;
+            negativeDiv.appendChild(effectEl);
+        });
+        container.appendChild(negativeDiv);
+    }
+}
+
 // Сброс игры
 function resetGame() {
     gameState.availableStyles = [];
@@ -820,6 +1040,12 @@ function resetGame() {
     gameState.lives = STARTING_LIVES;
     gameState.round = 1;
     gameState.isReady = false;
+    
+    // Скрываем визуализацию боя
+    const battleViz = document.getElementById('battle-visualization');
+    const enemyBattleViz = document.getElementById('enemy-battle-visualization');
+    if (battleViz) battleViz.classList.add('hidden');
+    if (enemyBattleViz) enemyBattleViz.classList.add('hidden');
     
     if (gameState.socket) {
         gameState.socket.disconnect();

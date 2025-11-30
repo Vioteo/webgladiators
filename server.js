@@ -21,12 +21,11 @@ function generateRoomId() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-// Генерация случайных стилей (3-4 доступных, остальные заблокированы)
+// Генерация случайных стилей (блокируется только 1 стиль)
 function generateRandomStyles() {
     const shuffled = [...ALL_STYLES].sort(() => Math.random() - 0.5);
-    const availableCount = 3 + Math.floor(Math.random() * 2); // 3 или 4
-    const available = shuffled.slice(0, availableCount);
-    const blocked = shuffled.slice(availableCount);
+    const blocked = [shuffled[0]]; // Только один заблокированный стиль
+    const available = shuffled.slice(1); // Все остальные доступны
     return { available, blocked };
 }
 
@@ -47,7 +46,10 @@ io.on('connection', (socket) => {
                 hero: null,
                 gladiator: null,
                 ready: false,
-                lives: 100
+                lives: 100,
+                gold: 10,
+                cards: [],
+                styleProgress: {} // Прогресс по стилям для расчета шансов
             }],
             gameState: 'waiting', // waiting, selecting, playing
             availableStyles: styles.available,
@@ -83,7 +85,10 @@ io.on('connection', (socket) => {
             hero: null,
             gladiator: null,
             ready: false,
-            lives: 100
+            lives: 100,
+            gold: 10,
+            cards: [],
+            styleProgress: {} // Прогресс по стилям для расчета шансов
         });
 
         socket.join(roomId);
@@ -135,9 +140,20 @@ io.on('connection', (socket) => {
 
         const player = room.players.find(p => p.id === socket.id);
         if (player) {
+            // Обновляем гладиатора, сохраняя базового героя
+            if (player.hero && !gladiator.id) {
+                gladiator.id = player.hero.id;
+                gladiator.name = player.hero.name;
+                gladiator.style = player.hero.style;
+                gladiator.passive = player.hero.passive;
+                gladiator.active = player.hero.active;
+            }
             player.gladiator = gladiator;
             player.cards = cards || [];
             player.ready = true;
+            
+            // Обновляем прогресс по стилям для расчета шансов
+            updateStyleProgress(player);
             console.log(`Игрок ${player.name} готов к бою`);
             
             io.to(roomId).emit('player-ready-status', {
@@ -212,10 +228,60 @@ function startBattle(room) {
     gladiator2.mana = 0;
     gladiator2.activeCooldown = 0;
 
-    io.to(room.id).emit('battle-started');
+    io.to(room.id).emit('battle-started', {
+        gladiator1: { 
+            name: gladiator1.name, 
+            health: gladiator1.currentHealth, 
+            maxHealth: gladiator1.maxHealth, 
+            mana: 0,
+            maxMana: gladiator1.maxMana || 200,
+            effects: getEffectsDisplay(gladiator1)
+        },
+        gladiator2: { 
+            name: gladiator2.name, 
+            health: gladiator2.currentHealth, 
+            maxHealth: gladiator2.maxHealth, 
+            mana: 0,
+            maxMana: gladiator2.maxMana || 200,
+            effects: getEffectsDisplay(gladiator2)
+        }
+    });
 
+    const battleLog = [];
+    const battleUpdates = [];
+    let battleUpdateInterval = null;
+    
+    // Отправляем обновления боя в реальном времени
+    battleUpdateInterval = setInterval(() => {
+        if (room.gameState !== 'playing') {
+            if (battleUpdateInterval) clearInterval(battleUpdateInterval);
+            return;
+        }
+        
+        io.to(room.id).emit('battle-update', {
+            gladiator1: {
+                name: gladiator1.name,
+                health: gladiator1.currentHealth,
+                maxHealth: gladiator1.maxHealth,
+                mana: gladiator1.mana,
+                maxMana: gladiator1.maxMana || 200,
+                effects: getEffectsDisplay(gladiator1)
+            },
+            gladiator2: {
+                name: gladiator2.name,
+                health: gladiator2.currentHealth,
+                maxHealth: gladiator2.maxHealth,
+                mana: gladiator2.mana,
+                maxMana: gladiator2.maxMana || 200,
+                effects: getEffectsDisplay(gladiator2)
+            }
+        });
+    }, 200); // Обновление каждые 200ms
+    
     // Симуляция боя
-    simulateBattle(gladiator1, gladiator2, (winner) => {
+    simulateBattle(gladiator1, gladiator2, (winner, log, updates) => {
+        if (battleUpdateInterval) clearInterval(battleUpdateInterval);
+        
         let winnerPlayer, loserPlayer;
         
         if (winner === 1) {
@@ -229,6 +295,17 @@ function startBattle(room) {
         // Проигравший теряет жизни
         const damageToLives = Math.max(10, Math.floor((loserPlayer.gladiator.maxHealth - (winner === 1 ? gladiator1.currentHealth : gladiator2.currentHealth)) / 50));
         loserPlayer.lives -= damageToLives;
+        
+        // Восстанавливаем здоровье гладиаторов после боя для следующего раунда
+        player1.gladiator.currentHealth = Math.min(gladiator1.currentHealth, player1.gladiator.maxHealth);
+        player2.gladiator.currentHealth = Math.min(gladiator2.currentHealth, player2.gladiator.maxHealth);
+        
+        // Расчет золота с бонусом за не потраченное
+        const bonusGold1 = Math.floor((player1.gold || 0) / 5);
+        const bonusGold2 = Math.floor((player2.gold || 0) / 5);
+        
+        player1.gold = (player1.gold || 10) + (winner === 1 ? 5 : 3) + bonusGold1;
+        player2.gold = (player2.gold || 10) + (winner === 2 ? 5 : 3) + bonusGold2;
 
         const result = {
             winner: winnerPlayer.id,
@@ -239,7 +316,11 @@ function startBattle(room) {
             player1Id: player1.id,
             player2Id: player2.id,
             gladiator1Health: gladiator1.currentHealth,
-            gladiator2Health: gladiator2.currentHealth
+            gladiator2Health: gladiator2.currentHealth,
+            player1Gold: player1.gold,
+            player2Gold: player2.gold,
+            battleLog: log || [],
+            battleUpdates: updates || []
         };
 
         room.battleResult = result;
@@ -268,25 +349,25 @@ function startBattle(room) {
                 io.to(room.id).emit('restart-game');
             }, 5000);
         } else {
-            // Сброс готовности для следующего раунда
+            // Сброс готовности для следующего раунда (герой сохраняется)
             room.round++;
             setTimeout(() => {
                 room.players.forEach(p => {
-                    p.hero = null;
-                    p.gladiator = null;
                     p.ready = false;
                 });
+                // Генерируем новые стили для магазина
                 const styles = generateRandomStyles();
                 room.availableStyles = styles.available;
                 room.blockedStyles = styles.blocked;
-                room.gameState = 'selecting';
+                room.gameState = 'preparing';
                 room.battleResult = null;
-                io.to(room.id).emit('round-end');
-                io.to(room.id).emit('styles-selected', {
-                    styles: room.availableStyles,
-                    blockedStyles: room.blockedStyles
+                io.to(room.id).emit('round-end', {
+                    player1Gold: player1.gold,
+                    player2Gold: player2.gold,
+                    availableStyles: styles.available,
+                    blockedStyles: styles.blocked
                 });
-            }, 3000);
+            }, 5000); // Увеличено время для просмотра результата
         }
     });
 }
@@ -296,6 +377,9 @@ function simulateBattle(glad1, glad2, callback) {
     let turn = 0;
     const maxTurns = 500;
     const tickRate = 100; // 100ms между тиками
+    const battleLog = [];
+    const battleUpdates = [];
+    let lastUpdateTime = 0;
 
     const battleInterval = setInterval(() => {
         turn++;
@@ -313,20 +397,51 @@ function simulateBattle(glad1, glad2, callback) {
         const attackInterval2 = Math.floor(1000 / (glad2.attackSpeed || 1));
         
         if (turn % Math.floor(attackInterval1 / tickRate) === 0 && glad1.currentHealth > 0) {
-            attack(glad1, glad2);
+            const attackResult = attack(glad1, glad2);
+            if (attackResult) {
+                battleLog.push(`${glad1.name} атакует ${glad2.name} и наносит ${attackResult.damage} урона`);
+            }
         }
         
         if (turn % Math.floor(attackInterval2 / tickRate) === 0 && glad2.currentHealth > 0) {
-            attack(glad2, glad1);
+            const attackResult = attack(glad2, glad1);
+            if (attackResult) {
+                battleLog.push(`${glad2.name} атакует ${glad1.name} и наносит ${attackResult.damage} урона`);
+            }
         }
         
         // Пассивные эффекты
-        applyPassiveEffects(glad1, glad2);
-        applyPassiveEffects(glad2, glad1);
+        const passive1 = applyPassiveEffects(glad1, glad2);
+        const passive2 = applyPassiveEffects(glad2, glad1);
+        if (passive1) battleLog.push(passive1);
+        if (passive2) battleLog.push(passive2);
         
         // Проверка активных способностей
-        checkAndUseActiveAbility(glad1, glad2);
-        checkAndUseActiveAbility(glad2, glad1);
+        const ability1 = checkAndUseActiveAbility(glad1, glad2);
+        const ability2 = checkAndUseActiveAbility(glad2, glad1);
+        if (ability1) battleLog.push(ability1);
+        if (ability2) battleLog.push(ability2);
+        
+        // Отправляем обновления состояния каждые 500ms для визуализации
+        if (turn % 5 === 0) {
+            battleUpdates.push({
+                time: turn * tickRate / 1000,
+                gladiator1: {
+                    health: glad1.currentHealth,
+                    maxHealth: glad1.maxHealth,
+                    mana: glad1.mana,
+                    maxMana: glad1.maxMana || 200,
+                    effects: getEffectsDisplay(glad1)
+                },
+                gladiator2: {
+                    health: glad2.currentHealth,
+                    maxHealth: glad2.maxHealth,
+                    mana: glad2.mana,
+                    maxMana: glad2.maxMana || 200,
+                    effects: getEffectsDisplay(glad2)
+                }
+            });
+        }
 
         // Проверка окончания боя
         if (glad1.currentHealth <= 0 || glad2.currentHealth <= 0 || turn >= maxTurns) {
@@ -342,7 +457,7 @@ function simulateBattle(glad1, glad2, callback) {
                 winner = glad1.currentHealth > glad2.currentHealth ? 1 : 2;
             }
             
-            callback(winner);
+            callback(winner, battleLog.slice(-50), battleUpdates); // Отправляем последние 50 записей лога
         }
     }, tickRate);
 }
@@ -350,10 +465,13 @@ function simulateBattle(glad1, glad2, callback) {
 // Атака
 function attack(attacker, defender) {
     const damage = calculateDamage(attacker, defender);
-    defender.currentHealth -= damage;
+    defender.currentHealth = Math.max(0, defender.currentHealth - damage);
     
     // Восстановление маны при атаке
-    attacker.mana = Math.min(attacker.maxMana || 200, (attacker.mana || 0) + 5);
+    const oldMana = attacker.mana || 0;
+    attacker.mana = Math.min(attacker.maxMana || 200, oldMana + 5);
+    
+    return { damage, manaGained: attacker.mana - oldMana };
 }
 
 // Расчет урона
@@ -437,6 +555,8 @@ function applyPassiveAbility(gladiator, target, damage) {
 
 // Применение пассивных эффектов
 function applyPassiveEffects(gladiator, target) {
+    let logMessage = null;
+    
     // Обновление эффектов замедления
     if (gladiator.slowed && gladiator.slowed > 0) {
         gladiator.slowed--;
@@ -444,34 +564,54 @@ function applyPassiveEffects(gladiator, target) {
             delete gladiator.slowed;
         }
     }
+    
+    // Гниение (Pudge) - периодический урон
+    if (gladiator.passive && gladiator.passive.name === 'Гниение') {
+        target.currentHealth = Math.max(0, target.currentHealth - 10);
+        logMessage = `${gladiator.name}: Гниение наносит 10 урона ${target.name}`;
+    }
+    
+    return logMessage;
 }
 
 // Проверка и использование активной способности
 function checkAndUseActiveAbility(gladiator, target) {
-    if (!gladiator.active || gladiator.activeCooldown > 0) return;
-    if (gladiator.mana < gladiator.active.manaCost) return;
+    if (!gladiator.active || gladiator.activeCooldown > 0) return null;
+    if (gladiator.mana < gladiator.active.manaCost) return null;
     
     // Используем способность
     gladiator.mana -= gladiator.active.manaCost;
     gladiator.activeCooldown = gladiator.active.cooldown;
     
     const ability = gladiator.active.name;
+    let logMessage = `${gladiator.name} использует ${ability}!`;
     
     // Берсеркер Крик (Axe)
     if (ability === 'Берсеркер Крик') {
-        gladiator.armor = (gladiator.armor || 0) + 5;
+        const oldArmor = gladiator.armor || 0;
+        gladiator.armor = oldArmor + 5;
+        gladiator.armorBoost = (gladiator.armorBoost || 0) + 5;
+        logMessage += ` Броня +5!`;
         setTimeout(() => {
             gladiator.armor = Math.max(gladiator.armor - 5, 2);
+            gladiator.armorBoost = Math.max((gladiator.armorBoost || 0) - 5, 0);
         }, 3000);
     }
     
     // Божественная Сила (Sven)
     if (ability === 'Божественная Сила') {
-        gladiator.damage = (gladiator.damage || 50) * 2;
-        gladiator.attackSpeed = (gladiator.attackSpeed || 1) * 1.5;
+        const baseDamage = gladiator.damage || 50;
+        const baseSpeed = gladiator.attackSpeed || 1;
+        gladiator.damage = baseDamage * 2;
+        gladiator.attackSpeed = baseSpeed * 1.5;
+        gladiator.damageBoost = baseDamage;
+        gladiator.attackSpeedBoost = baseSpeed * 0.5;
+        logMessage += ` Урон x2, Скорость x1.5!`;
         setTimeout(() => {
-            gladiator.damage = Math.floor(gladiator.damage / 2);
-            gladiator.attackSpeed = gladiator.attackSpeed / 1.5;
+            gladiator.damage = baseDamage;
+            gladiator.attackSpeed = baseSpeed;
+            gladiator.damageBoost = 0;
+            gladiator.attackSpeedBoost = 0;
         }, 5000);
     }
     
@@ -518,8 +658,71 @@ function checkAndUseActiveAbility(gladiator, target) {
     
     // Лагуна Блейд (Lina)
     if (ability === 'Лагуна Блейд') {
-        target.currentHealth -= 300; // Чистый урон
+        target.currentHealth = Math.max(0, target.currentHealth - 300); // Чистый урон
+        logMessage += ` Наносит 300 урона ${target.name}!`;
     }
+    
+    return logMessage;
+}
+
+// Получение эффектов для отображения
+function getEffectsDisplay(gladiator) {
+    const effects = {
+        positive: [],
+        negative: []
+    };
+    
+    // Ярость (положительный)
+    if (gladiator.furyStacks && gladiator.furyStacks > 0) {
+        effects.positive.push({ name: 'Ярость', stacks: gladiator.furyStacks, icon: '⚡' });
+    }
+    
+    // Замедление (негативный)
+    if (gladiator.slowed && gladiator.slowed > 0) {
+        effects.negative.push({ name: 'Замедление', stacks: gladiator.slowed, icon: '❄️' });
+    }
+    
+    // Мороз стаки (негативный)
+    if (gladiator.frostStacks && gladiator.frostStacks > 0) {
+        effects.negative.push({ name: 'Мороз', stacks: gladiator.frostStacks, icon: '🧊' });
+    }
+    
+    // Яд стаки (негативный)
+    if (gladiator.poisonStacks && gladiator.poisonStacks > 0) {
+        effects.negative.push({ name: 'Яд', stacks: gladiator.poisonStacks, icon: '☠️' });
+    }
+    
+    // Усиление брони (положительный)
+    if (gladiator.armorBoost && gladiator.armorBoost > 0) {
+        effects.positive.push({ name: 'Броня +', stacks: gladiator.armorBoost, icon: '🛡️' });
+    }
+    
+    // Усиление урона (положительный)
+    if (gladiator.damageBoost && gladiator.damageBoost > 0) {
+        effects.positive.push({ name: 'Урон +', stacks: Math.round(gladiator.damageBoost), icon: '⚔️' });
+    }
+    
+    // Усиление скорости атаки (положительный)
+    if (gladiator.attackSpeedBoost && gladiator.attackSpeedBoost > 0) {
+        effects.positive.push({ name: 'Скорость +', stacks: Math.round(gladiator.attackSpeedBoost * 100), icon: '💨' });
+    }
+    
+    // Жар стаки (положительный для Lina)
+    if (gladiator.heatStacks && gladiator.heatStacks > 0) {
+        effects.positive.push({ name: 'Жар', stacks: gladiator.heatStacks, icon: '🔥' });
+    }
+    
+    // Невидимость (положительный)
+    if (gladiator.invisible) {
+        effects.positive.push({ name: 'Невидимость', stacks: 1, icon: '👻' });
+    }
+    
+    // Неуязвимость (положительный)
+    if (gladiator.invulnerable) {
+        effects.positive.push({ name: 'Неуязвимость', stacks: 1, icon: '✨' });
+    }
+    
+    return effects;
 }
 
 const PORT = process.env.PORT || 3000;

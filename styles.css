@@ -229,6 +229,29 @@ body {
     font-size: 0.9em;
 }
 
+.rarity-chances {
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(255, 215, 0, 0.1);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 8px;
+    font-size: 0.85em;
+}
+
+.rarity-chances strong {
+    display: block;
+    margin-bottom: 8px;
+    color: #ffd700;
+}
+
+.style-chance {
+    margin: 5px 0;
+    padding: 5px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+    font-size: 0.9em;
+}
+
 .waiting-message {
     margin-top: 20px;
     padding: 15px;
@@ -499,6 +522,108 @@ body {
     padding: 15px;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
+}
+
+/* Визуализация боя */
+.battle-visualization {
+    padding: 20px;
+}
+
+.battle-visualization.hidden {
+    display: none;
+}
+
+.battle-gladiator {
+    margin-bottom: 20px;
+}
+
+.battle-gladiator-info {
+    margin-bottom: 10px;
+}
+
+.battle-gladiator-name {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.battle-health-bar, .battle-mana-bar {
+    height: 30px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 5px;
+    margin: 8px 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.battle-health-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4caf50 0%, #66bb6a 100%);
+    transition: width 0.3s ease;
+    border-radius: 5px;
+}
+
+.battle-mana-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #2196f3 0%, #42a5f5 100%);
+    transition: width 0.3s ease;
+    border-radius: 5px;
+}
+
+.battle-health-text, .battle-mana-text {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    line-height: 30px;
+    font-weight: bold;
+    font-size: 0.9em;
+    z-index: 2;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.effects-display {
+    margin-top: 15px;
+}
+
+.effects-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.effects-group.positive {
+    border-left: 3px solid #4caf50;
+    padding-left: 10px;
+}
+
+.effects-group.negative {
+    border-left: 3px solid #f44336;
+    padding-left: 10px;
+}
+
+.effect-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 5px;
+    font-size: 0.85em;
+}
+
+.effect-item .effect-icon {
+    font-size: 1.2em;
+}
+
+.effect-item .effect-name {
+    font-weight: 500;
+}
+
+.effect-item .effect-stacks {
+    font-weight: bold;
+    color: #ffd700;
 }
 
 .player-arena, .enemy-arena {
